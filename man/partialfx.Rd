@@ -5,16 +5,14 @@
 \alias{partialfx}
 \title{Calculate (Average) Partial Effects of a Model}
 \usage{
-partialfx(x, data, data2, ...)
+partialfx(x, data1, data2, ...)
 
-avg_partialfx(x, data, ...)
+avg_partialfx(x, data1, data2, ...)
 }
 \arguments{
 \item{x}{A model object}
 
-\item{data}{Model data}
-
-\item{data2}{Model data}
+\item{data1, data2}{Model data}
 
 \item{...}{extra arguments}
 }

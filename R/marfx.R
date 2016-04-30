@@ -60,39 +60,53 @@ ev.lm <- function(param, X, ...) {
 #' in a variable.
 #'
 #' @param x A model object
-#' @param data Model data
-#' @param data2 Model data
+#' @param data1,data2 Model data
 #' @param ... extra arguments
 #'
 #' @export
-partialfx <- function(x, data, data2, ...) {
+partialfx <- function(x, data1, data2, ...) {
   UseMethod("partialfx")
 }
 
-#' @export
-partialfx.lm <- function(x, data, data2, n = 1000, ...) {
-  # Difference
-  point_est <- predict(x, newdata = data2) - predict(x, newdata = data2)
-  # If response not deleted, it will be looked for
-  f <- delete.response(terms(x))
-  X1 <- model.matrix(f, data = data)
-  X2 <- model.matrix(f, data = data2)
+sim_partialfx_lm <- function(x, X1, X2, n) {
   obs <- nrow(X1)
   param <- postsim(x, n = n)
   array(as_vector(map(param, function(p, X1, X2) {
     ev.lm(p[["beta"]], X2 - X1)
-  }, X1 = X1, X2 = X2), double(obs)), c(double(obs), n))
+  }, X1 = X1, X2 = X2), .type = double(obs)), dim = c(obs, n))
+}
+
+#' @export
+partialfx.lm <- function(x, data1, data2, n = 1000, confint = 0.95, ...) {
+  # Difference
+  point_est <- predict(x, newdata = data2) - predict(x, newdata = data1)
+  # simulate from posterior to get CI
+  mt <- delete.response(terms(x))
+  X1 <- model.matrix(mt, data = data1)
+  X2 <- model.matrix(mt, data = data2)
+  sims <- sim_partialfx_lm(x, X1, X2, n)
+  std.error <- apply(sims, 1, sd)
+  ret <- cbind(point_est, std.error)
+  colnames(ret) <- c("estimate", "std.error")
+  ret
 }
 
 #' @rdname partialfx
 #' @export
-avg_partialfx <- function(x, data, ...) {
+avg_partialfx <- function(x, data1, data2, ...) {
   UseMethod("avg_partialfx")
 }
 
 #' @export
-avg_partialfx.lm <- function(x, data = stats::model.frame(x), ...) {
-  NULL
+avg_partialfx.lm <- function(x, data1, data2, n = 1000, ...) {
+  point_est <- mean(predict(x, newdata = data2) - predict(x, newdata = data1))
+  # simulate from posterior to get CI
+  mt <- delete.response(terms(x))
+  X1 <- model.matrix(mt, data = data1)
+  X2 <- model.matrix(mt, data = data2)
+  sims <- sim_partialfx_lm(x, X1, X2, n)
+  std.error <- sd(apply(sims, 2, mean))
+  c("estimate" = point_est, "std.error" = std.error)
 }
 
 #' Calculate (Average) Marginal Effects of a Model
@@ -154,3 +168,36 @@ postsimy.lm <- function(x, n = 1, data = stats::model.frame(x), ...) {
     rnorm(nrow(X), ev.lm(p[["beta"]], X), p[["sigma"]])
   }, X = X)
 }
+
+#' Methods for ordered factors
+#'
+#' Median and quantile methods for ordered factors.
+#'
+#' @param x An ordered factor
+#' @param na.rm logical. If true, any NA and NaN's are removed from \code{x} before computing.
+#' @param left logical. If left, then quantiles are calculated as P(X <= x),
+#'        else P(X > x).
+#' @param names logical; if true, the result has a names attribute. Set to FALSE for speedup with many probs.
+#'
+#'
+#'
+#' @export
+#' @importFrom stats median
+#' @name ordered
+median.ordered <- function(x, na.rm = FALSE) {
+  ordered(levels(x)[floor(median(as.integer(x), na.rm = na.rm))], levels(x))
+}
+
+#' @export
+#' @importFrom stats quantile
+#' @rdname ordered
+quantile.ordered <- function(x, probs = seq(0, 1, 0.25), na.rm = FALSE,
+                             left = TRUE, names = TRUE, ...) {
+  FUN <- if (left) floor else ceiling
+  q <- FUN(quantile(as.integer(x), na.rm = na.rm, type = 2, probs = probs))
+  ordered(levels(x)[q], levels(x))
+}
+
+
+
+

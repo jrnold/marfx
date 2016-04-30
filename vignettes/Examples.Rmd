@@ -16,10 +16,10 @@ library("dplyr")
 
 mod <- lm(prestige ~ education + income + type, data = Duncan)
 
-postsim(mod)
-postsim(mod)
-postsimev(mod)
-postsimy(mod)
+#postsim(mod)
+#postsim(mod)
+#postsimev(mod)
+#postsimy(mod)
 
 data1 <- Duncan %>%
   group_by(type) %>%
@@ -28,10 +28,10 @@ data1 <- Duncan %>%
 data2 <-
   Duncan %>% 
   group_by(type) %>%
-  summarize(education = mean(education) + sd(education),
-         income = mean(income) + sd(income))
-foo <- partialfx(mod, data = data1, data2 = data2)
-
+  summarize(education = mean(education),
+            income = mean(income) + sd(income))
+foo <- partialfx(mod, data1 = data1, data2 = data2)
+foo <- avg_partialfx(mod, data1 = data1, data2 = data2)
 
 ```
 

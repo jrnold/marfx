@@ -1,0 +1,37 @@
+---
+title: "Examples"
+author: "Jeffrey Arnold"
+date: "April 29, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("car")
+library("marfx")
+library("dplyr")
+
+mod <- lm(prestige ~ education + income + type, data = Duncan)
+
+postsim(mod)
+postsim(mod)
+postsimev(mod)
+postsimy(mod)
+
+data1 <- Duncan %>%
+  group_by(type) %>%
+  summarize(education = mean(education),
+            income = mean(income))
+data2 <-
+  Duncan %>% 
+  group_by(type) %>%
+  summarize(education = mean(education) + sd(education),
+         income = mean(income) + sd(income))
+foo <- partialfx(mod, data = data1, data2 = data2)
+
+
+```
+

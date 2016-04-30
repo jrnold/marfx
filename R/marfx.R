@@ -1,4 +1,5 @@
 #' @import mvtnorm
+#' @import purrr
 NULL
 
 #' Simulate Parameters from a Model
@@ -50,7 +51,7 @@ ev <- function(param, ...) {
 
 #' @export
 ev.lm <- function(param, X, ...) {
-  as.matrix(X) %*% as.matrix(param)
+   as.matrix(X) %*% as.matrix(param)
 }
 
 #' Calculate (Average) Partial Effects of a Model
@@ -59,24 +60,38 @@ ev.lm <- function(param, X, ...) {
 #' in a variable.
 #'
 #' @param x A model object
+#' @param data Model data
+#' @param data2 Model data
 #' @param ... extra arguments
 #'
 #' @export
-partialfx <- function(x, ...) {
+partialfx <- function(x, data, data2, ...) {
   UseMethod("partialfx")
 }
 
-partialfx.lm <- function(x, data = stats::model.frame(x), data2 = NULL) {
-  NULL
+#' @export
+partialfx.lm <- function(x, data, data2, n = 1000, ...) {
+  # Difference
+  point_est <- predict(x, newdata = data2) - predict(x, newdata = data2)
+  # If response not deleted, it will be looked for
+  f <- delete.response(terms(x))
+  X1 <- model.matrix(f, data = data)
+  X2 <- model.matrix(f, data = data2)
+  obs <- nrow(X1)
+  param <- postsim(x, n = n)
+  array(as_vector(map(param, function(p, X1, X2) {
+    ev.lm(p[["beta"]], X2 - X1)
+  }, X1 = X1, X2 = X2), double(obs)), c(double(obs), n))
 }
 
 #' @rdname partialfx
 #' @export
-avg_partialfx <- function(x, ...) {
+avg_partialfx <- function(x, data, ...) {
   UseMethod("avg_partialfx")
 }
 
-avg_partialfx.lm <- function(x, data = stats::model.frame(x), data2 = NULL) {
+#' @export
+avg_partialfx.lm <- function(x, data = stats::model.frame(x), ...) {
   NULL
 }
 
@@ -93,6 +108,7 @@ marfx <- function(x, ...) {
   UseMethod("marfx")
 }
 
+#' @export
 marfx.lm <- function(x, ...) {
   NULL
 }
@@ -103,11 +119,13 @@ avg_marfx <- function(x, ...) {
   UseMethod("avg_marfx")
 }
 
+#' @export
 avg_marfx.lm <- function(x, ...) {
   NULL
 }
 
-postsim.lm <- function(x, n = 1, data = stats::model.frame(x)) {
+#' @export
+postsim.lm <- function(x, n = 1, ...) {
   x_summary <- summary(x)
   df_residual <- x$df.residual
   beta_hat <- coef(x)
@@ -116,14 +134,23 @@ postsim.lm <- function(x, n = 1, data = stats::model.frame(x)) {
   sigma <- sigma_hat / sqrt((df_residual + 1) / rchisq(n, df = df_residual + 1))
   ## TODO parallel process
   lapply(sigma, function(sigma, b, V) {
-    rmvnorm(1, beta_hat, sigma * V)
+    list(beta = as.numeric(rmvnorm(1, b, sigma * V)), sigma = sigma)
   }, b = beta_hat, V = V_beta_hat)
 }
 
-postsimev.lm <- function(x, data = stats::model.frame(x)) {
-  NULL
+#' @export
+postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000, ...) {
+  X <- model.matrix(delete.response(terms(x)), data = data)
+  params <- postsim.lm(x, n = n, data = data)
+  map(params, function(p, X) {ev.lm(p[["beta"]], X)}, X = X)
 }
 
-postsimy.lm <- function(x, data = stats::model.frame(x)) {
-  NULL
+
+#' @export
+postsimy.lm <- function(x, n = 1, data = stats::model.frame(x), ...) {
+  X <- model.matrix(delete.response(terms(x)), data = data)
+  params <- postsim.lm(x, n = n, data = data)
+  map(params, function(p, X) {
+    rnorm(nrow(X), ev.lm(p[["beta"]], X), p[["sigma"]])
+  }, X = X)
 }

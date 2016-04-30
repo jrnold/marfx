@@ -10,7 +10,8 @@ LazyData: TRUE
 Depends:
     R (>= 3.0.0)
 Imports:
-    mvtnorm
+    mvtnorm,
+    purrr
 URL: https://github.com/jrnold/marfx
 BugReports: https://github.com/jrnold/marfx/issues
 RoxygenNote: 5.0.1

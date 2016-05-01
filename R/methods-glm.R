@@ -63,7 +63,7 @@ avg_partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
 postsimev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
                           n = 1000L, ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
-  params <- postsim.lm(x, n = n, data = data)
+  params <- postsim.glm(x, n = n, data = data)
   family <- if (response) x$family else NULL
   map(params, function(p, X, family) {ev_glm(p[["beta"]], X, family)}, X = X)
 }

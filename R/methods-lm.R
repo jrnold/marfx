@@ -16,17 +16,16 @@ ev_lm <- function(param, X, ...) {
 #' @rdname lm-methods
 #' @export
 postsim.lm <- function(x, n = 1L, ...) {
-  x_summary <- summary(x)
-  df_residual <- x$df.residual
+  summ <- summary(x)
+  .n <- summ$df[1] + summ$df[2]
+  .k <- summ$df[1]
   beta_hat <- coef(x)
-  V_beta_hat <- vcov(x)
-  sigma_hat <- x_summary$sigma
-  #sigma <- sigma_hat / sqrt((df_residual + 1) / rchisq(n, df = df_residual + 1))
-  sigma <- rep(sigma_hat, n)
-  ## TODO parallel process
-  lapply(sigma, function(sigma, b, V) {
-    list(beta = as.numeric(rmvnorm(1, b, V)), sigma = sigma)
-  }, b = beta_hat, V = V_beta_hat)
+  V_beta <- summ$cov.unscaled
+  sigma_hat <- summ$sigma
+  sigma <- sigma_hat * sqrt((.n - .k) / rchisq(n, .n - .k))
+  map(sigma, function(sigma, b, V) {
+    list(beta = as.numeric(rmvnorm(1, b, V_beta * sigma ^ 2)), sigma = sigma)
+  }, b = beta_hat, V = V_beta)
 }
 
 #' @rdname lm-methods

@@ -310,3 +310,10 @@ quantile.ordered <- function(x, probs = seq(0, 1, 0.25), na.rm = FALSE,
            names = names))
   setNames(ordered(levels(x)[q], levels(x)), names(q))
 }
+
+# Set Numerical Differentiation width
+# See http://www.karenkopecky.net/Teaching/eco613614/Notes_NumericalDifferentiation.pdf
+numdiff_width <- function(x) {
+  # Add and subtract x to remove roundoff error
+  x + max(abs(x), 1) * sqrt(.Machine$double.eps) - x
+}

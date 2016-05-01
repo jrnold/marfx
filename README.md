@@ -1,13 +1,21 @@
----
-title: "README.Rmd"
-author: "Jeffrey Arnold"
-date: "May 1, 2016"
-output: html_document
----
+# marfx
 
-Yet another package to calculate 
+Yet another package to calculate marginal effects and first differences
+for statistical models.
 
-# Methods
+## Installation
+
+```r
+if(!require('devtools')) {
+  install.packages('devtools')
+  library('devtools')
+}
+install_github('jrnold/marfx')
+```
+
+## Overview
+
+Methods:
 
 - `postsimev` : Simulate the expected value of the response, $E(y)$.
 - `postsimy`: Simulate the response, $y$.
@@ -18,7 +26,7 @@ Yet another package to calculate
 - `marfx`: Calculate the marginal effects
 - `avg_margx`: Calculate the average marginal effect
 
-# Supported classes
+Supported classes:
 
 - `lm`
 - `glm`
@@ -26,7 +34,7 @@ Yet another package to calculate
 This is still a work in progress and even for these objects, not all variations
 may be supported.
 
-# Similar packages
+## Similar packages
 
 [margins](https://github.com/leeper/margins) is the most similar, but implements
 the derivatives of the model matrix with respect to the data variables via symbolic differentiation,

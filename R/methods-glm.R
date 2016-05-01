@@ -42,7 +42,7 @@ avg_partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
   predict_type <- if (response) "response" else "link"
   sims <- postsim_partialfx.glm(x, data1, data2, n, response = response,
                             delta = delta)
-  if (is.null(weights)) {
+  if (!is.null(weights)) {
     point_est <-
       weighted.mean(predict(x, newdata = data2, type = predict_type) -
                       predict(x, newdata = data1, type = predict_type),

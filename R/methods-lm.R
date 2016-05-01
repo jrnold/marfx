@@ -48,7 +48,8 @@ postsim_partialfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
 partialfx.lm <- function(x, data1, data2, delta = 1, n = 1000L, confint = 0.95,
                          ...) {
   # Difference
-  point_est <- predict(x, newdata = data2) - predict(x, newdata = data1)
+  point_est <- (predict(x, newdata = data2) -
+                  predict(x, newdata = data1)) / delta
   # simulate from posterior to get CI
   sims <- postsim_partialfx.lm(x, data1, data2, n, delta)
   sim_summary(sims, confint, estimate = point_est)
@@ -62,12 +63,14 @@ avg_partialfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
 
   # simulate from posterior to get CI
   sims <- postsim_partialfx.lm(x, data1, data2, n, delta)
-  if (is.null(weights)) {
+  if (!is.null(weights)) {
     point_est <- weighted.mean(predict(x, newdata = data2) -
-                                 predict(x, newdata = data1), w = weights)
+                                 predict(x, newdata = data1), w = weights) /
+      delta
     sims_avg <- apply(sims, 2, weighted.mean, w = weights)
   } else {
-    point_est <- mean(predict(x, newdata = data2) - predict(x, newdata = data1))
+    point_est <- mean(predict(x, newdata = data2) -
+                        predict(x, newdata = data1)) / delta
     sims_avg <- apply(sims, 2, mean)
   }
   sim_summary(array(sims_avg, c(1, n)), confint, estimate = point_est)

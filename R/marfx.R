@@ -115,7 +115,7 @@ mfx_preprocess <- function(x, data, variable, level) {
     delta <- 1
   } else if (is.integer(v)) {
     delta <- 1L
-    data[[variable]] <- v + delta
+    data2[[variable]] <- v + delta
   } else if (is.numeric(v)) {
     delta <- numdiff_width(v)
     data2[[variable]] <- v + delta

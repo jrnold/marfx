@@ -77,7 +77,7 @@ sim_partialfx_lm <- function(x, X1, X2, n) {
 }
 
 #' @export
-partialfx.lm <- function(x, data1, data2, n = 1000, confint = 0.95, ...) {
+partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95, ...) {
   # Difference
   point_est <- predict(x, newdata = data2) - predict(x, newdata = data1)
   # simulate from posterior to get CI
@@ -98,7 +98,7 @@ avg_partialfx <- function(x, data1, data2, ...) {
 }
 
 #' @export
-avg_partialfx.lm <- function(x, data1, data2, n = 1000, ...) {
+avg_partialfx.lm <- function(x, data1, data2, n = 1000L, ...) {
   point_est <- mean(predict(x, newdata = data2) - predict(x, newdata = data1))
   # simulate from posterior to get CI
   mt <- delete.response(terms(x))
@@ -153,7 +153,7 @@ postsim.lm <- function(x, n = 1, ...) {
 }
 
 #' @export
-postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000, ...) {
+postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
   params <- postsim.lm(x, n = n, data = data)
   map(params, function(p, X) {ev.lm(p[["beta"]], X)}, X = X)
@@ -161,7 +161,7 @@ postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000, ...) {
 
 
 #' @export
-postsimy.lm <- function(x, n = 1, data = stats::model.frame(x), ...) {
+postsimy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
   params <- postsim.lm(x, n = n, data = data)
   map(params, function(p, X) {
@@ -175,12 +175,6 @@ postsimy.lm <- function(x, n = 1, data = stats::model.frame(x), ...) {
 #'
 #' @param x An ordered factor
 #' @param na.rm logical. If true, any NA and NaN's are removed from \code{x} before computing.
-#' @param left logical. If left, then quantiles are calculated as P(X <= x),
-#'        else P(X > x).
-#' @param names logical; if true, the result has a names attribute. Set to FALSE for speedup with many probs.
-#'
-#'
-#'
 #' @export
 #' @importFrom stats median
 #' @name ordered
@@ -188,16 +182,18 @@ median.ordered <- function(x, na.rm = FALSE) {
   ordered(levels(x)[floor(median(as.integer(x), na.rm = na.rm))], levels(x))
 }
 
+#' @param probs numeric vector of probabilities with values in [0,1]. (Values up to 2e-14 outside that range are accepted and moved to the nearby endpoint.)
+#' @param left logical. If left, then quantiles are calculated as P(X <= x),
+#'        else P(X > x).
+#' @param names logical; if true, the result has a names attribute. Set to FALSE for speedup with many probs.
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @importFrom stats quantile
 #' @rdname ordered
 quantile.ordered <- function(x, probs = seq(0, 1, 0.25), na.rm = FALSE,
                              left = TRUE, names = TRUE, ...) {
   FUN <- if (left) floor else ceiling
-  q <- FUN(quantile(as.integer(x), na.rm = na.rm, type = 2, probs = probs))
-  ordered(levels(x)[q], levels(x))
+  q <- FUN(quantile(as.integer(x), na.rm = na.rm, type = 2, probs = probs,
+           names = names))
+  setNames(ordered(levels(x)[q], levels(x)), names(q))
 }
-
-
-
-

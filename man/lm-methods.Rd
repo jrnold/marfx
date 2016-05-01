@@ -29,7 +29,7 @@
 
 \item{n}{Number of iterations}
 
-\item{...}{Other options}
+\item{...}{further arguments passed to or from other methods.}
 
 \item{data1, data2, data}{Data}
 

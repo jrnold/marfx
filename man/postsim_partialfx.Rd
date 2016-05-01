@@ -15,7 +15,7 @@ postsim_partialfx(x, data1, data2, n, delta, ...)
 
 \item{delta}{Width of difference. See Details.}
 
-\item{...}{Optional parameters}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
 Calculate the partial (discrete marginal) effects of a model.

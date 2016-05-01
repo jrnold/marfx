@@ -12,7 +12,7 @@ ev_lm <- function(param, X, ...) {
 #' @param delta Size of the difference
 #' @param confint Confidence interval level
 #' @param n Number of iterations
-#' @param ... Other options
+#' @param ... further arguments passed to or from other methods.
 #' @rdname lm-methods
 #' @export
 postsim.lm <- function(x, n = 1L, ...) {

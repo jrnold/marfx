@@ -19,7 +19,7 @@ ev_glm <- function(param, X, family = NULL, ...) {
 #' @param response If response is true, then partial effects are on the
 #'   the scale of the response variable. If false, then the partial effects
 #'   are on the scale of the linear predictors.
-#' @param ... Other options
+#' @param ... further arguments passed to or from other methods.
 #' @rdname glm-methods
 #' @export
 partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,

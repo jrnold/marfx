@@ -38,7 +38,7 @@
 the scale of the response variable. If false, then the partial effects
 are on the scale of the linear predictors.}
 
-\item{...}{Other options}
+\item{...}{further arguments passed to or from other methods.}
 
 \item{weights}{Weights to apply to the data}
 }

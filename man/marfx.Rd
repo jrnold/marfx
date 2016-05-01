@@ -12,7 +12,7 @@ avg_marfx(x, ...)
 \arguments{
 \item{x}{A model object}
 
-\item{...}{extra arguments}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
 The partial effects are the effects of discrete change

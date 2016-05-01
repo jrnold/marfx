@@ -5,7 +5,7 @@ NULL
 #' Simulate Parameters from a Model
 #'
 #' @param x A model object
-#' @param ... extra arguments
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @export
 postsim <- function(x, ...) {
@@ -15,7 +15,7 @@ postsim <- function(x, ...) {
 #' Simulate Expected Values from a Model
 #'
 #' @param x A model object
-#' @param ... extra arguments
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @export
 postsimev <- function(x, ...) {
@@ -25,7 +25,7 @@ postsimev <- function(x, ...) {
 #' Simulate Responses from a Model
 #'
 #' @param x A model object
-#' @param ... extra arguments
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @export
 postsimy <- function(x, ...) {
@@ -46,7 +46,7 @@ postsimy <- function(x, ...) {
 #' @param data1,data2 Data frames
 #' @param n Number of iterations
 #' @param delta Width of difference. See Details.
-#' @param ... Optional parameters
+#' @param ... further arguments passed to or from other methods.
 #' @export
 postsim_partialfx <- function(x, data1, data2, n, delta, ...) {
   UseMethod("postsim_partialfx")
@@ -60,7 +60,7 @@ postsim_partialfx <- function(x, data1, data2, n, delta, ...) {
 #' @param x A model object
 #' @param data1,data2 Model data
 #' @param delta Width of difference. See Details.
-#' @param ... Extra arguments
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @export
 partialfx <- function(x, data1, data2, delta, ...) {
@@ -79,7 +79,7 @@ avg_partialfx <- function(x, data1, data2, delta, ...) {
 #' in a variable.
 #'
 #' @param x A model object
-#' @param ... extra arguments
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @export
 marfx <- function(x, ...) {
@@ -159,8 +159,8 @@ sim_summary <- function(x, confint = 0.95, estimate = NULL) {
   std.error <- apply(x, 1, sd)
   p <- (1 - confint) / 2
   ci <- apply(x, 1, quantile, probs = c(p, 1 - p))
-  ret <- cbind(point_est, ci[1, ], ci[2, ], std.error)
-  colnames(ret) <- c("estimate", "lwr", "upr", "std.error")
+  ret <- cbind(point_est, std.error, ci[1, ], ci[2, ])
+  colnames(ret) <- c("estimate", "std.error", "conf.low", "conf.high")
   ret
 }
 

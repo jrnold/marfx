@@ -16,7 +16,7 @@ avg_partialfx(x, data1, data2, delta, ...)
 
 \item{delta}{Width of difference. See Details.}
 
-\item{...}{Extra arguments}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
 The partial effects are the effects of discrete change

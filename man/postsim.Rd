@@ -9,7 +9,7 @@ postsim(x, ...)
 \arguments{
 \item{x}{A model object}
 
-\item{...}{extra arguments}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
 Simulate Parameters from a Model

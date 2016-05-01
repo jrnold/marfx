@@ -267,17 +267,17 @@ postsimy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
 }
 
 
-#' @export
-postsimy.glm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
-  X <- model.matrix(delete.response(terms(x)), data = data)
-  params <- postsim.glm(x, n = n, data = data)
-  map(params, function(p, X, object) {
-    object$coef <- p[["beta"]]
-    object$linear.predictors <- ev.glm(p[["beta"]], X, response = FALSE)
-    object$fitted.value <- object$family$linkinv(object$linear.predictors)
-    simulate(object, nsim = 1)
-  }, X = X, object = x)
-}
+# @export
+# postsimy.glm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
+#   X <- model.matrix(delete.response(terms(x)), data = data)
+#   params <- postsim.glm(x, n = n, data = data)
+#   map(params, function(p, X, object) {
+#     object$coef <- p[["beta"]]
+#     object$linear.predictors <- ev.glm(p[["beta"]], X, response = FALSE)
+#     object$fitted.value <- object$family$linkinv(object$linear.predictors)
+#     simulate(object, nsim = 1)
+#   }, X = X, object = x)
+# }
 
 # Needs to be adapted for all types of glm families
 # Can't directly use the simulate method because it requires fitted values,

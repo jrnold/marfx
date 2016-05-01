@@ -3,18 +3,20 @@
 \name{partialfx}
 \alias{avg_partialfx}
 \alias{partialfx}
-\title{Calculate (Average) Partial Effects of a Model}
+\title{(Average) Partial Effects}
 \usage{
-partialfx(x, data1, data2, ...)
+partialfx(x, data1, data2, delta, ...)
 
-avg_partialfx(x, data1, data2, ...)
+avg_partialfx(x, data1, data2, delta, ...)
 }
 \arguments{
 \item{x}{A model object}
 
 \item{data1, data2}{Model data}
 
-\item{...}{extra arguments}
+\item{delta}{Width of difference. See Details.}
+
+\item{...}{Extra arguments}
 }
 \description{
 The partial effects are the effects of discrete change

@@ -2,7 +2,7 @@
 % Please edit documentation in R/marfx.R
 \name{postsimy}
 \alias{postsimy}
-\title{Simulate Predicted Values from a Model}
+\title{Simulate Responses from a Model}
 \usage{
 postsimy(x, ...)
 }
@@ -12,6 +12,6 @@ postsimy(x, ...)
 \item{...}{extra arguments}
 }
 \description{
-Simulate Predicted Values from a Model
+Simulate Responses from a Model
 }
 

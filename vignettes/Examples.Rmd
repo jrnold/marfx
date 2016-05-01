@@ -33,5 +33,12 @@ data2 <-
 mod_pfx <- partialfx(mod, data1 = data1, data2 = data2)
 mod_apf <- avg_partialfx(mod, data1 = data1, data2 = data2)
 
+mod2 <- lm(prestige ~ (education + income + type) ^ 2, data = Duncan)
+
+marfx(mod2, "income")
+marfx(mod2, "education")
+marfx(mod2, "type", "wc")
+avg_marfx(mod2, "education")
+
 ```
 

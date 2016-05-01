@@ -1,26 +1,29 @@
 ---
-title: "Examples"
+title: "Marginal Effects Examples"
 author: "Jeffrey Arnold"
-date: "April 29, 2016"
-output: html_document
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Marginal Effects Examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r message = FALSE,results='hide'}
+library("marfx")
+library("dplyr")
+library("ggplot2")
 ```
+
+## Duncan Example
 
 ```{r}
 library("car")
-library("marfx")
-library("dplyr")
+mod <- lm(prestige ~ education*type + income*type, data = Duncan)
+```
 
-mod <- lm(prestige ~ education + income + type, data = Duncan)
-
-#postsim(mod)
-#postsim(mod)
-#postsimev(mod)
-#postsimy(mod)
-
+Partial effect of a one standard deviation change in education from mean, for all income groups (using the mean and sd within each income group)
+```{r}
 data1 <- Duncan %>%
   group_by(type) %>%
   summarize(education = mean(education),
@@ -30,15 +33,67 @@ data2 <-
   group_by(type) %>%
   summarize(education = mean(education),
             income = mean(income) + 1)
+
 mod_pfx <- partialfx(mod, data1 = data1, data2 = data2)
-mod_apf <- avg_partialfx(mod, data1 = data1, data2 = data2)
+as.data.frame(mod_pfx) %>%
+  mutate(type = data1$type) %>%
+  ggplot(aes(x = type, y = estimate, ymin = lwr, ymax = upr)) +
+  geom_pointrange() +
+  coord_flip()
+```
 
-mod2 <- lm(prestige ~ (education + income + type) ^ 2, data = Duncan)
+Instead, let's calculate the marginal effect of education within each group.
+Since `avg_marfx` calculates the average marginal effect, we need to subset the Duncan data, run `avg_marfx` and recombine it into the dataset that we can use for analysis.
+```{r}
+.data <- list()
+for (lvl in levels(Duncan$type)) {
+  .data[[lvl]] <-
+    avg_marfx(mod, "education", data = filter(Duncan, type == lvl)) %>%
+    as.data.frame() %>%
+    mutate(type = lvl)
+}
+.data <- bind_rows(.data)
+as.data.frame(.data) %>%
+  ggplot(aes(x = type, y = estimate, ymin = lwr, ymax = upr)) +
+  geom_pointrange() +
+  coord_flip()
+```
 
-marfx(mod2, "income")
-marfx(mod2, "education")
-marfx(mod2, "type", "wc")
-avg_marfx(mod2, "education")
+Plot the marginal effect of education for each group, averaged over members of each group, at different levels of education
+```{r}
+.data <- marfx(mod, "education", data = Duncan)
+.data <- cbind(Duncan, as.data.frame(.data))
+ggplot(.data, 
+       aes(colour = type, x = education, y = estimate, ymin = lwr, ymax = upr)) +
+  geom_pointrange()
 
 ```
 
+Plot the marginal effects of education for each group, over the entire range of education, using the entire range of education,
+```{r}
+.data <- 
+  data.frame(education = seq(0, 100, by = 10)) %>%
+    group_by(education) %>%
+    do(select(Duncan, -education)) %>%
+  cbind(as.data.frame(marfx(mod, "education", data = .)))
+ggplot() + 
+  geom_ribbon(data = .data, mapping = aes(fill = type, x = education, ymin = lwr, ymax = upr), alpha = 0.3) + 
+  geom_line(data = .data, mapping = aes(color = type, x = education, y = estimate)) +
+  geom_rug(data = Duncan, aes(x = education, color = type))
+```
+
+Example which looks at the marginal effect of education when
+education is a 4th-order polynomial.
+```{r}
+mod2 <- lm(prestige ~ poly(education, 4), data = Duncan)
+.data <- marfx(mod2, "education", data = data_frame(education = seq(0, 100, by = 10))) %>%
+  as.data.frame() %>%
+  mutate(education = seq(0, 100, by = 10))
+  
+ggplot() + 
+  geom_ribbon(data = .data, mapping = aes(x = education, ymin = lwr, ymax = upr), alpha = 0.3) + 
+  geom_line(data = .data, mapping = aes(x = education, y = estimate)) +
+  geom_point(data = .data, mapping = aes(x = education, y = estimate)) +  
+  geom_rug(data = Duncan, aes(x = education))
+
+```

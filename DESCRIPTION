@@ -12,6 +12,11 @@ Depends:
 Imports:
     mvtnorm,
     purrr
+Suggests:
+    car,
+    rmarkdown,
+    knitr
 URL: https://github.com/jrnold/marfx
 BugReports: https://github.com/jrnold/marfx/issues
 RoxygenNote: 5.0.1
+VignetteBuilder: knitr

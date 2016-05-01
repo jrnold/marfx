@@ -29,9 +29,9 @@ data2 <-
   Duncan %>% 
   group_by(type) %>%
   summarize(education = mean(education),
-            income = mean(income) + sd(income))
-foo <- partialfx(mod, data1 = data1, data2 = data2)
-foo <- avg_partialfx(mod, data1 = data1, data2 = data2)
+            income = mean(income) + 1)
+mod_pfx <- partialfx(mod, data1 = data1, data2 = data2)
+mod_apf <- avg_partialfx(mod, data1 = data1, data2 = data2)
 
 ```
 

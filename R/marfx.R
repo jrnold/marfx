@@ -13,46 +13,27 @@ postsim <- function(x, ...) {
 }
 
 #' @export
-postsim.lm <- function(x, n = 1, ...) {
+postsim.lm <- function(x, n = 1L, ...) {
   x_summary <- summary(x)
   df_residual <- x$df.residual
   beta_hat <- coef(x)
   V_beta_hat <- vcov(x)
   sigma_hat <- x_summary$sigma
-  sigma <- sigma_hat / sqrt((df_residual + 1) / rchisq(n, df = df_residual + 1))
+  #sigma <- sigma_hat / sqrt((df_residual + 1) / rchisq(n, df = df_residual + 1))
+  sigma <- rep(sigma_hat, n)
   ## TODO parallel process
   lapply(sigma, function(sigma, b, V) {
-    list(beta = as.numeric(rmvnorm(1, b, sigma * V)), sigma = sigma)
+    list(beta = as.numeric(rmvnorm(1, b, V)), sigma = sigma)
   }, b = beta_hat, V = V_beta_hat)
 }
 
 #' @export
-postsim.glm <- function(x, n = 1, ...) {
+postsim.glm <- function(x, n = 1L, ...) {
   beta_hat <- coef(x)
   V_beta_hat <- vcov(x)
   ## TODO parallel process
   map(array_branch(rmvnorm(n, beta_hat, V_beta_hat), margin = 2),
       function(x) list(beta = x))
-}
-
-#' Simulate Predicted Values from a Model
-#'
-#' @param x A model object
-#' @param ... extra arguments
-#'
-#' @export
-postsimy <- function(x, ...) {
-  UseMethod("postsimy")
-}
-
-#' Simulate Expected Values from a Model
-#'
-#' @param x A model object
-#' @param ... extra arguments
-#'
-#' @export
-postsimev <- function(x, ...) {
-  UseMethod("postsimev")
 }
 
 #' Calculate Expected Values of a Model
@@ -80,7 +61,6 @@ ev.lm <- function(param, X, ...) {
 ev.glm <- function(param, X, family = NULL, ...) {
   mu <- as.matrix(X) %*% as.matrix(param)
   if (!is.null(family)) {
-    # Taylor expansion of E(g(x))
     mu <- family$linkinv(mu)
   }
   mu
@@ -101,73 +81,69 @@ partialfx <- function(x, data1, data2, ...) {
   UseMethod("partialfx")
 }
 
-sim_partialfx_lm <- function(x, X1, X2, n) {
+sim_partialfx_lm <- function(x, data1, data2, n = 1L, delta = 1) {
+  mt <- delete.response(terms(x))
+  X1 <- model.matrix(mt, data = data1)
+  X2 <- model.matrix(mt, data = data2)
   obs <- nrow(X1)
   param <- postsim(x, n = n)
-  array(as_vector(map(param, function(p, X1, X2) {
-    ev.lm(p[["beta"]], X2 - X1)
-  }, X1 = X1, X2 = X2), .type = double(obs)), dim = c(obs, n))
+  array(as_vector(map(param, function(p, X1, X2, delta) {
+    ev.lm(p[["beta"]], X2 - X1) / delta
+  }, X1 = X1, X2 = X2, delta = delta),
+  .type = double(obs)), dim = c(obs, n))
+}
+
+sim_partialfx_glm <- function(x, data1, data2, n = 1L,
+                              response = FALSE, delta = 1) {
+  mt <- delete.response(terms(x))
+  X1 <- model.matrix(mt, data = data1)
+  X2 <- model.matrix(mt, data = data2)
+  obs <- nrow(X1)
+  param <- postsim(x, n = n)
+  array(as_vector(map(param, function(p, X1, X2, response, delta) {
+    (ev.lm(p[["beta"]], X2, response = response) -
+       ev.lm(p[["beta"]], X1, response = response)) / delta
+  }, X1 = X1, X2 = X2, response = response, delta = delta),
+  .type = double(obs)), dim = c(obs, n))
 }
 
 
 #' @export
-partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95, ...) {
+partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95,
+                         delta = 1, ...) {
   # Difference
   point_est <- predict(x, newdata = data2) - predict(x, newdata = data1)
   # simulate from posterior to get CI
-  mt <- delete.response(terms(x))
-  X1 <- model.matrix(mt, data = data1)
-  X2 <- model.matrix(mt, data = data2)
-  sims <- sim_partialfx_lm(x, X1, X2, n)
+  sims <- sim_partialfx_lm(x, data1, data2, n, delta)
   std.error <- apply(sims, 1, sd)
-  lwr <- point_est + qnorm((1 - confint) / 2)
-  upr <- point_est + qnorm((1 - confint) / 2, lower.tail = FALSE)
+  lwr <- point_est + qnorm((1 - confint) / 2) * std.error
+  upr <- point_est + qnorm((1 - confint) / 2, lower.tail = FALSE) * std.error
   ret <- cbind(point_est, lwr, upr, std.error)
   colnames(ret) <- c("estimate", "lwr", "upr", "std.error")
   ret
 }
 
-sim_partialfx_glm <- function(x, X1, X2, n, response) {
-  obs <- nrow(X1)
-  param <- postsim(x, n = n)
-  array(as_vector(map(param, function(p, X1, X2, response) {
-    ev.lm(p[["beta"]], X2, response = response) -
-      ev.lm(p[["beta"]], X1, response = response)
-  }, X1 = X1, X2 = X2, response = response), .type = double(obs)),
-    dim = c(obs, n))
-}
 
 
 #' @export
-partialfx.glm <- function(x, data1, data2, n = 1000L, confint = 0.95,
-                          response = response, ...) {
+partialfx.glm <- function(x, data1, data2,
+                          n = 1000L,
+                          confint = 0.95,
+                          response = response,
+                          delta = 1, ...) {
   # Difference
   predict_type <- if (response) "response" else "link"
   point_est <- predict(x, newdata = data2, type = predict_type) -
-    predict(x, newdata = data1, type = predict_type)
+    predict(x, newdata = data1, type = predict_type) / delta
   # simulate from posterior to get CI
-  mt <- delete.response(terms(x))
-  X1 <- model.matrix(mt, data = data1)
-  X2 <- model.matrix(mt, data = data2)
-  sims <- sim_partialfx_glm(x, X1, X2, n, response)
+  sims <- sim_partialfx_glm(x, data1, data2, n, response, delta)
   std.error <- apply(sims, 1, sd)
-  lwr <- point_est + qnorm((1 - confint) / 2)
-  upr <- point_est + qnorm((1 - confint) / 2, lower.tail = FALSE)
+  lwr <- point_est + qnorm((1 - confint) / 2) * std.error
+  upr <- point_est + qnorm((1 - confint) / 2, lower.tail = FALSE) * std.error
   ret <- cbind(point_est, lwr, upr, std.error)
   colnames(ret) <- c("estimate", "lwr", "upr", "std.error")
   ret
 }
-
-sim_partialfx_glm <- function(x, X1, X2, n, response) {
-  obs <- nrow(X1)
-  param <- postsim(x, n = n)
-  array(as_vector(map(param, function(p, X1, X2, response) {
-    ev.lm(p[["beta"]], X2, response = response) -
-      ev.lm(p[["beta"]], X1, response = response)
-  }, X1 = X1, X2 = X2, response = response), .type = double(obs)),
-  dim = c(obs, n))
-}
-
 
 
 #' @rdname partialfx
@@ -176,36 +152,38 @@ avg_partialfx <- function(x, data1, data2, ...) {
   UseMethod("avg_partialfx")
 }
 
+
 #' @export
-avg_partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95, ...) {
-  point_est <- mean(predict(x, newdata = data2) - predict(x, newdata = data1))
+avg_partialfx.lm <- function(x, data1, data2, n = 1000L,
+                             confint = 0.95,
+                             weight = 1,
+                             delta = 1,
+                             ...) {
+  point_est <- weighted.mean(predict(x, newdata = data2) -
+                               predict(x, newdata = data1))
   # simulate from posterior to get CI
-  mt <- delete.response(terms(x))
-  X1 <- model.matrix(mt, data = data1)
-  X2 <- model.matrix(mt, data = data2)
-  sims <- sim_partialfx_lm(x, X1, X2, n)
-  std.error <- sd(apply(sims, 2, mean))
+  sims <- sim_partialfx_lm(x, data1, data2, n, delta)
+  std.error <- sd(apply(sims, 2, weighted.mean, weight = weight))
   p <- (1 - confint) / 2
-  lwr <- point_est + qnorm(p)
-  upr <- point_est + qnorm(p, lower.tail = FALSE)
+  lwr <- point_est + qnorm(p) * std.error
+  upr <- point_est + qnorm(p, lower.tail = FALSE) * std.error
   c("estimate" = point_est, "lwr" = lwr, "upr" = upr, "std.error" = std.error)
 }
 
 #' @export
-avg_partialfx.glm <- function(x, data1, data2, n = 1000L, confint = 0.95,
+avg_partialfx.glm <- function(x, data1, data2, n = 1000L,
+                              confint = 0.95,
+                              delta = 1,
                               response = TRUE, ...) {
   predict_type <- if (response) "response" else "link"
   point_est <- predict(x, newdata = data2, type = predict_type) -
     predict(x, newdata = data1, type = predict_type)
   # simulate from posterior to get CI
-  mt <- delete.response(terms(x))
-  X1 <- model.matrix(mt, data = data1)
-  X2 <- model.matrix(mt, data = data2)
-  sims <- sim_partialfx_glm(x, X1, X2, n, response)
+  sims <- sim_partialfx_glm(x, data1, data2, n, response, delta)
   std.error <- sd(apply(sims, 2, mean))
   p <- (1 - confint) / 2
-  lwr <- point_est + qnorm(p)
-  upr <- point_est + qnorm(p, lower.tail = FALSE)
+  lwr <- point_est + qnorm(p) * std.error
+  upr <- point_est + qnorm(p, lower.tail = FALSE) * std.error
   c("estimate" = point_est, "lwr" = lwr, "upr" = upr, "std.error" = std.error)
 }
 
@@ -223,9 +201,47 @@ marfx <- function(x, ...) {
   UseMethod("marfx")
 }
 
+
+mfx_preprocess <- function(x, data, variable, level) {
+  data2 <- data
+  v <- data[[variable]]
+  if (is.null(v)) {
+    stop(sprintf("variable %s not found in data", variable))
+  }
+  if (is.ordered(data[["variable"]])) {
+    data2[[variable]] <- ordered(min(as.integer(v) + 1L, nlevels(v)),
+                                 levels(v))
+    delta <- 1
+  } else if (is.factor(v)) {
+    data[[variable]] <- factor(levels(v)[1], levels = levels(v))
+    if (!is.null(level)) {
+      data2[[variable]] <- factor(level, levels = levels(v))
+    }
+    delta <- 1
+  } else if (is.logical(v)) {
+    data2[[variable]] <- TRUE
+    data[[variable]] <- FALSE
+    delta <- 1
+  } else if (is.integer(v)) {
+    data2[[variable]] <- v + 1L
+    delta <- 1
+  } else if (is.numeric(v)) {
+    delta <- numdiff_width(v)
+    data2[[variable]] <- v + delta
+  } else {
+    stop(sprintf("Variables of class %s not supported", class(v)))
+  }
+  list(data1 = data, data2 = data2, delta = delta)
+}
+
 #' @export
-marfx.lm <- function(x, ...) {
-  NULL
+marfx.default <- function(x, variable, level = NULL,
+                          data = stats::model.frame(x),
+                          ...) {
+  prep <- mfx_preprocess(x, data, variable, level)
+  mfx <- partialfx(x, data1 = prep$data1, data2 = prep$data2,
+                   delta = prep$delta, ...)
+  mfx
 }
 
 #' @rdname marfx
@@ -235,11 +251,24 @@ avg_marfx <- function(x, ...) {
 }
 
 #' @export
-avg_marfx.lm <- function(x, ...) {
-  NULL
+avg_marfx.default <- function(x, variable, level = NULL,
+                         data = stats::model.frame(x),
+                         ...) {
+  prep <- mfx_preprocess(x, data, variable, level)
+  mfx <- avg_partialfx(x, data1 = prep$data1, data2 = prep$data2,
+                       delta = prep$delta, ...)
+  mfx
 }
 
-
+#' Simulate Expected Values from a Model
+#'
+#' @param x A model object
+#' @param ... extra arguments
+#'
+#' @export
+postsimev <- function(x, ...) {
+  UseMethod("postsimev")
+}
 
 #' @export
 postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
@@ -256,6 +285,15 @@ postsimev.glm <- function(x, data = stats::model.frame(x), response = TRUE, n = 
   map(params, function(p, X, family) {ev.glm(p[["beta"]], X, family)}, X = X)
 }
 
+#' Simulate Predicted Values from a Model
+#'
+#' @param x A model object
+#' @param ... extra arguments
+#'
+#' @export
+postsimy <- function(x, ...) {
+  UseMethod("postsimy")
+}
 
 #' @export
 postsimy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
@@ -278,7 +316,6 @@ postsimy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
 #     simulate(object, nsim = 1)
 #   }, X = X, object = x)
 # }
-
 # Needs to be adapted for all types of glm families
 # Can't directly use the simulate method because it requires fitted values,
 # which are only in the glm.

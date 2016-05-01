@@ -208,7 +208,7 @@ mfx_preprocess <- function(x, data, variable, level) {
   if (is.null(v)) {
     stop(sprintf("variable %s not found in data", variable))
   }
-  if (is.ordered(data[["variable"]])) {
+  if (is.ordered(v)) {
     data2[[variable]] <- ordered(min(as.integer(v) + 1L, nlevels(v)),
                                  levels(v))
     delta <- 1
@@ -223,8 +223,8 @@ mfx_preprocess <- function(x, data, variable, level) {
     data[[variable]] <- FALSE
     delta <- 1
   } else if (is.integer(v)) {
-    data2[[variable]] <- v + 1L
-    delta <- 1
+    delta <- 1L
+    data[[variable]] <- v + delta
   } else if (is.numeric(v)) {
     delta <- numdiff_width(v)
     data2[[variable]] <- v + delta

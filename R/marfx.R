@@ -12,6 +12,29 @@ postsim <- function(x, ...) {
   UseMethod("postsim")
 }
 
+#' @export
+postsim.lm <- function(x, n = 1, ...) {
+  x_summary <- summary(x)
+  df_residual <- x$df.residual
+  beta_hat <- coef(x)
+  V_beta_hat <- vcov(x)
+  sigma_hat <- x_summary$sigma
+  sigma <- sigma_hat / sqrt((df_residual + 1) / rchisq(n, df = df_residual + 1))
+  ## TODO parallel process
+  lapply(sigma, function(sigma, b, V) {
+    list(beta = as.numeric(rmvnorm(1, b, sigma * V)), sigma = sigma)
+  }, b = beta_hat, V = V_beta_hat)
+}
+
+#' @export
+postsim.glm <- function(x, n = 1, ...) {
+  beta_hat <- coef(x)
+  V_beta_hat <- vcov(x)
+  ## TODO parallel process
+  map(array_branch(rmvnorm(n, beta_hat, V_beta_hat), margin = 2),
+      function(x) list(beta = x))
+}
+
 #' Simulate Predicted Values from a Model
 #'
 #' @param x A model object
@@ -40,8 +63,7 @@ postsimev <- function(x, ...) {
 #' there is often not an easy way to do this when the parameters
 #' of the model are known, rather than estimated.
 #'
-#' @param param Paramters (coefficients) of the model. Often in the same
-#'   format as returned by \code{\link{coef}}.
+#' @param param Paramters (coefficients) of the model. Often in the same format as returned by \code{\link{coef}}.
 #' @param ... extra arguments
 #'
 #' @export
@@ -53,6 +75,17 @@ ev <- function(param, ...) {
 ev.lm <- function(param, X, ...) {
    as.matrix(X) %*% as.matrix(param)
 }
+
+#' @export
+ev.glm <- function(param, X, family = NULL, ...) {
+  mu <- as.matrix(X) %*% as.matrix(param)
+  if (!is.null(family)) {
+    # Taylor expansion of E(g(x))
+    mu <- family$linkinv(mu)
+  }
+  mu
+}
+
 
 #' Calculate (Average) Partial Effects of a Model
 #'
@@ -76,6 +109,7 @@ sim_partialfx_lm <- function(x, X1, X2, n) {
   }, X1 = X1, X2 = X2), .type = double(obs)), dim = c(obs, n))
 }
 
+
 #' @export
 partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95, ...) {
   # Difference
@@ -86,10 +120,55 @@ partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95, ...) {
   X2 <- model.matrix(mt, data = data2)
   sims <- sim_partialfx_lm(x, X1, X2, n)
   std.error <- apply(sims, 1, sd)
-  ret <- cbind(point_est, std.error)
-  colnames(ret) <- c("estimate", "std.error")
+  lwr <- point_est + qnorm((1 - confint) / 2)
+  upr <- point_est + qnorm((1 - confint) / 2, lower.tail = FALSE)
+  ret <- cbind(point_est, lwr, upr, std.error)
+  colnames(ret) <- c("estimate", "lwr", "upr", "std.error")
   ret
 }
+
+sim_partialfx_glm <- function(x, X1, X2, n, response) {
+  obs <- nrow(X1)
+  param <- postsim(x, n = n)
+  array(as_vector(map(param, function(p, X1, X2, response) {
+    ev.lm(p[["beta"]], X2, response = response) -
+      ev.lm(p[["beta"]], X1, response = response)
+  }, X1 = X1, X2 = X2, response = response), .type = double(obs)),
+    dim = c(obs, n))
+}
+
+
+#' @export
+partialfx.glm <- function(x, data1, data2, n = 1000L, confint = 0.95,
+                          response = response, ...) {
+  # Difference
+  predict_type <- if (response) "response" else "link"
+  point_est <- predict(x, newdata = data2, type = predict_type) -
+    predict(x, newdata = data1, type = predict_type)
+  # simulate from posterior to get CI
+  mt <- delete.response(terms(x))
+  X1 <- model.matrix(mt, data = data1)
+  X2 <- model.matrix(mt, data = data2)
+  sims <- sim_partialfx_glm(x, X1, X2, n, response)
+  std.error <- apply(sims, 1, sd)
+  lwr <- point_est + qnorm((1 - confint) / 2)
+  upr <- point_est + qnorm((1 - confint) / 2, lower.tail = FALSE)
+  ret <- cbind(point_est, lwr, upr, std.error)
+  colnames(ret) <- c("estimate", "lwr", "upr", "std.error")
+  ret
+}
+
+sim_partialfx_glm <- function(x, X1, X2, n, response) {
+  obs <- nrow(X1)
+  param <- postsim(x, n = n)
+  array(as_vector(map(param, function(p, X1, X2, response) {
+    ev.lm(p[["beta"]], X2, response = response) -
+      ev.lm(p[["beta"]], X1, response = response)
+  }, X1 = X1, X2 = X2, response = response), .type = double(obs)),
+  dim = c(obs, n))
+}
+
+
 
 #' @rdname partialfx
 #' @export
@@ -98,7 +177,7 @@ avg_partialfx <- function(x, data1, data2, ...) {
 }
 
 #' @export
-avg_partialfx.lm <- function(x, data1, data2, n = 1000L, ...) {
+avg_partialfx.lm <- function(x, data1, data2, n = 1000L, confint = 0.95, ...) {
   point_est <- mean(predict(x, newdata = data2) - predict(x, newdata = data1))
   # simulate from posterior to get CI
   mt <- delete.response(terms(x))
@@ -106,8 +185,30 @@ avg_partialfx.lm <- function(x, data1, data2, n = 1000L, ...) {
   X2 <- model.matrix(mt, data = data2)
   sims <- sim_partialfx_lm(x, X1, X2, n)
   std.error <- sd(apply(sims, 2, mean))
-  c("estimate" = point_est, "std.error" = std.error)
+  p <- (1 - confint) / 2
+  lwr <- point_est + qnorm(p)
+  upr <- point_est + qnorm(p, lower.tail = FALSE)
+  c("estimate" = point_est, "lwr" = lwr, "upr" = upr, "std.error" = std.error)
 }
+
+#' @export
+avg_partialfx.glm <- function(x, data1, data2, n = 1000L, confint = 0.95,
+                              response = TRUE, ...) {
+  predict_type <- if (response) "response" else "link"
+  point_est <- predict(x, newdata = data2, type = predict_type) -
+    predict(x, newdata = data1, type = predict_type)
+  # simulate from posterior to get CI
+  mt <- delete.response(terms(x))
+  X1 <- model.matrix(mt, data = data1)
+  X2 <- model.matrix(mt, data = data2)
+  sims <- sim_partialfx_glm(x, X1, X2, n, response)
+  std.error <- sd(apply(sims, 2, mean))
+  p <- (1 - confint) / 2
+  lwr <- point_est + qnorm(p)
+  upr <- point_est + qnorm(p, lower.tail = FALSE)
+  c("estimate" = point_est, "lwr" = lwr, "upr" = upr, "std.error" = std.error)
+}
+
 
 #' Calculate (Average) Marginal Effects of a Model
 #'
@@ -138,25 +239,21 @@ avg_marfx.lm <- function(x, ...) {
   NULL
 }
 
-#' @export
-postsim.lm <- function(x, n = 1, ...) {
-  x_summary <- summary(x)
-  df_residual <- x$df.residual
-  beta_hat <- coef(x)
-  V_beta_hat <- vcov(x)
-  sigma_hat <- x_summary$sigma
-  sigma <- sigma_hat / sqrt((df_residual + 1) / rchisq(n, df = df_residual + 1))
-  ## TODO parallel process
-  lapply(sigma, function(sigma, b, V) {
-    list(beta = as.numeric(rmvnorm(1, b, sigma * V)), sigma = sigma)
-  }, b = beta_hat, V = V_beta_hat)
-}
+
 
 #' @export
 postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
   params <- postsim.lm(x, n = n, data = data)
   map(params, function(p, X) {ev.lm(p[["beta"]], X)}, X = X)
+}
+
+#' @export
+postsimev.glm <- function(x, data = stats::model.frame(x), response = TRUE, n = 1000L, ...) {
+  X <- model.matrix(delete.response(terms(x)), data = data)
+  params <- postsim.lm(x, n = n, data = data)
+  family <- if (response) x$family else NULL
+  map(params, function(p, X, family) {ev.glm(p[["beta"]], X, family)}, X = X)
 }
 
 
@@ -168,6 +265,23 @@ postsimy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
     rnorm(nrow(X), ev.lm(p[["beta"]], X), p[["sigma"]])
   }, X = X)
 }
+
+
+#' @export
+postsimy.glm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
+  X <- model.matrix(delete.response(terms(x)), data = data)
+  params <- postsim.glm(x, n = n, data = data)
+  map(params, function(p, X, object) {
+    object$coef <- p[["beta"]]
+    object$linear.predictors <- ev.glm(p[["beta"]], X, response = FALSE)
+    object$fitted.value <- object$family$linkinv(object$linear.predictors)
+    simulate(object, nsim = 1)
+  }, X = X, object = x)
+}
+
+# Needs to be adapted for all types of glm families
+# Can't directly use the simulate method because it requires fitted values,
+# which are only in the glm.
 
 #' Methods for ordered factors
 #'
@@ -183,8 +297,7 @@ median.ordered <- function(x, na.rm = FALSE) {
 }
 
 #' @param probs numeric vector of probabilities with values in [0,1]. (Values up to 2e-14 outside that range are accepted and moved to the nearby endpoint.)
-#' @param left logical. If left, then quantiles are calculated as P(X <= x),
-#'        else P(X > x).
+#' @param left logical. If left, then quantiles are calculated as P(X <= x), else P(X > x).
 #' @param names logical; if true, the result has a names attribute. Set to FALSE for speedup with many probs.
 #' @param ... further arguments passed to or from other methods.
 #' @export

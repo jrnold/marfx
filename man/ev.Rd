@@ -7,8 +7,7 @@
 ev(param, ...)
 }
 \arguments{
-\item{param}{Paramters (coefficients) of the model. Often in the same
-format as returned by \code{\link{coef}}.}
+\item{param}{Paramters (coefficients) of the model. Often in the same format as returned by \code{\link{coef}}.}
 
 \item{...}{extra arguments}
 }

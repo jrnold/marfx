@@ -44,11 +44,11 @@ matrix with respect to the variables, which is slower but will handle all formul
 **marfx** uses simulation rather than the delta method to calculate the variance
 covariance of the marginal effects, which is slower, but more flexible.
 
-**marfx** adopts some inspiration from [simcf](http://faculty.washington.edu/cadolph/?page=60)
-which was written by Chris Adolph while teaching the same course which prompted me
-to write this package.
+**marfx** is inspired my ideas from [simcf](http://faculty.washington.edu/cadolph/?page=60)
+which was written by Chris Adolph while teaching the same course, for the same reasons I wrote this package.
 
-[Zelig](http://zeligproject.org/ allows for partial (finite) differences via specified counterfactuals,
+
+[Zelig](http://zeligproject.org/) allows for partial (finite) differences via specified counterfactuals,
 but only works for models within its package.
 
 Several other packages provide estimates of the marginal effects for some types

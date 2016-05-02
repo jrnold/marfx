@@ -99,14 +99,17 @@ postsim_partialfx.glm <- function(x, data1, data2, n = 1L,
 }
 
 #' @rdname glm-methods
+#' @param V The variance-covariance matrix of the coefficients. This arguments
+#'   allows for the substitution of "robust" covariance matrices.
 #' @export
-postsim.glm <- function(x, n = 1L, ...) {
+postsim.glm <- function(x, n = 1L, V = NULL, ...) {
   summ <- summary(x)
   beta_hat <- coef(x)
-  V_beta <- vcov(x)
-  sigma <- rep(sqrt(summ$dispersion), n.sims)
+  sigma <- rep(sqrt(summ$dispersion), n)
+  if (is.null(V)) V <- vcov(x)
   ## TODO parallel process
-  map(array_branch(rmvnorm(n, beta_hat, V_beta), margin = 2),
-      function(x, sigma) list(beta = x, sigma = sigma), sigma = sigma)
+  map(array_branch(rmvnorm(n, beta_hat, V), margin = 2),
+      function(x, sigma) list(beta = x, sigma = sigma),
+      sigma = sigma)
 }
 

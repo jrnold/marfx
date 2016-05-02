@@ -14,6 +14,7 @@ library("marfx")
 library("dplyr")
 library("ggplot2")
 library("purrr")
+library("viridis")
 ```
 
 ## Conflicing Interests and Trade
@@ -53,6 +54,9 @@ mod1 <- lm(xenovote ~ slavicshare * changenonslav +
      inc9903 + eduhi02 + unemp02 + apt9200 + vsall03 + brdcont, 
    data = alexseev)
 ```
+Note that even though the `alexseev` dataset includes a variable
+`slavicshare_changenonslav` which is the interaction between Slavic share and $\Delta$ non-Slavic share, this model specifies the interaction in the formula. This makes it much simpler for analysis since the `lm` object will contain information about the relationship between the variables and the terms in the regression, so in the analysis we will only need to specify changes in `slavicshare` or `changenonslav` and the functions can infer that the interaction will need to change.  If instead, the varible `slavicshare_changenonslav` was used, the `lm` object would not know that the variable was an interaction between `slavicshare` and `changenonslav` and we would need to be careful to always change both the variable of interest and the interaction when considering any marginal or partial effects.
+
 Berry et. al (2012, p. 14) present two marginal effect plots.
 The marginal effect of Slavic share on xenophobic voting, and the marginal effect of $\Delta$ non-Slavic share on xenophobic voting.
 ```{r fig.caption="Marginal Effect of Slavic Share on Xenophobic Voting"}
@@ -119,3 +123,34 @@ ggplot() +
 By using the `std.error`, this plot has smoother confidence intervals than the one using `conf.low` and `conf.high`, which are generated from the quantiles of the simulations.
 
 **TODO:** Add clustered standard errors.
+
+To summarize the effect of Slavic Share and $\Delta$ non-Slavic Share on xenophobic vote share we can calculate the average marginal effects of these variables,
+```{r fig.caption="Average Marginal Effects on Xenophobic Voting"}
+variables <- c("slavicshare" = "Slavic Share",
+               "changenonslav" = "Change non-Slavic Share")
+.data <- list()
+for (i in seq_along(variables)) {
+  .data[[i]] <-
+    as.data.frame(avg_marfx(mod1, names(variables)[i], data = alexseev)) %>%
+    mutate(variable = names(variables)[i],
+           description = variables[i])
+}
+.data <- bind_rows(.data)
+
+ggplot(.data, aes(x = description, y = estimate, ymin = conf.low, ymax = conf.high)) +
+  geom_hline(yintercept = 0, colour = "gray") +
+  geom_pointrange() +
+  coord_flip() +
+  scale_x_discrete("") +
+  scale_y_continuous("Average Marginal Effects") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+```
+
+**TODO** What to do if interactions are specified in the 
+data rather than the formula.
+
+# Conflicting Interests and Trade
+
+Kaster Example
+

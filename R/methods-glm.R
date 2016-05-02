@@ -26,8 +26,8 @@ partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
                           confint = 0.95, response = TRUE, ...) {
   # Difference
   predict_type <- if (response) "response" else "link"
-  point_est <- predict(x, newdata = data2, type = predict_type) -
-    predict(x, newdata = data1, type = predict_type) / delta
+  point_est <- (predict(x, newdata = data2, type = predict_type) -
+                predict(x, newdata = data1, type = predict_type)) / delta
   # simulate from posterior to get CI
   sims <- postsim_partialfx.glm(x, data1, data2, n, response, delta)
   sim_summary(sims, confint, estimate = point_est)
@@ -68,21 +68,19 @@ postsimev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
   map(params, function(p, X, family) {ev_glm(p[["beta"]], X, family)}, X = X)
 }
 
-
+# postsimy_glm_binomial <- function(n, eta, family = binomial(), weights = NULL, ...) {
+#   rbinom(length(prob), size = weights, prob = family$linkinv(eta)) / size
+# }
+#
+# postsimy_glm_gaussian <- function(n, eta, family = gaussian(), weights = NULL, sigma = 1) {
+#   rnorm(length(eta), mean = family$linkinv(eta), sd = sigma / sqrt(weights))
+# }
+#
+#
 # postsimy.glm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
 #   X <- model.matrix(delete.response(terms(x)), data = data)
-#   params <- postsim.glm(x, n = n, data = data)
-#   map(params, function(p, X, object) {
-#     object$coef <- p[["beta"]]
-#     object$linear.predictors <- ev.glm(p[["beta"]], X, response = FALSE)
-#     object$fitted.value <- object$family$linkinv(object$linear.predictors)
-#     simulate(object, nsim = 1)
-#   }, X = X, object = x)
+#   params <- postsim.glm(x, n = n, data = data, response = FALSE)
 # }
-# Needs to be adapted for all types of glm families
-# Can't directly use the simulate method because it requires fitted values,
-# which are only in the glm.
-
 
 #' @rdname glm-methods
 #' @export
@@ -103,10 +101,12 @@ postsim_partialfx.glm <- function(x, data1, data2, n = 1L,
 #' @rdname glm-methods
 #' @export
 postsim.glm <- function(x, n = 1L, ...) {
+  summ <- summary(x)
   beta_hat <- coef(x)
-  V_beta_hat <- vcov(x)
+  V_beta <- vcov(x)
+  sigma <- rep(sqrt(summ$dispersion), n.sims)
   ## TODO parallel process
-  map(array_branch(rmvnorm(n, beta_hat, V_beta_hat), margin = 2),
-      function(x) list(beta = x))
+  map(array_branch(rmvnorm(n, beta_hat, V_beta), margin = 2),
+      function(x, sigma) list(beta = x, sigma = sigma), sigma = sigma)
 }
 

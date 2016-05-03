@@ -13,7 +13,6 @@ Imports:
     mvtnorm,
     purrr
 Suggests:
-    car,
     dplyr,
     ggplot2,
     rmarkdown,

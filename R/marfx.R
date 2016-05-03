@@ -136,7 +136,7 @@ mfx_preprocess <- function(x, data, variable, level) {
     delta <- 1L
     data2[[variable]] <- v + delta
   } else if (is.numeric(v)) {
-    delta <- numdiff_width(v)
+    delta <- numdiff_stepsize(v)
     data2[[variable]] <- v + delta
   } else {
     stop(sprintf("Variables of class %s not supported", class(v)))

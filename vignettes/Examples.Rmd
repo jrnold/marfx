@@ -14,7 +14,6 @@ library("marfx")
 library("dplyr")
 library("ggplot2")
 library("purrr")
-library("viridis")
 ```
 
 ## Conflicing Interests and Trade
@@ -72,7 +71,7 @@ The marginal effect of Slavic share on xenophobic voting, and the marginal effec
                  vsall03 = mean(alexseev$vsall03),
                  brdcont = FALSE))
 
-.data <- cbind(.data, as.data.frame(marfx(mod1, data = .data, "slavicshare")))
+.data <- cbind(.data, mfx(mod1, data = .data, "slavicshare"))
 
 ggplot() +
   geom_ribbon(data = .data, mapping = aes(x = changenonslav, 
@@ -103,7 +102,7 @@ The marginal effects of $\Delta$ non-Slavic Share on Xenophobic voting:
                  vsall03 = mean(alexseev$vsall03),
                  brdcont = FALSE))
 
-.data <- cbind(.data, as.data.frame(marfx(mod1, data = .data, "changenonslav")))
+.data <- cbind(.data, mfx(mod1, data = .data, "changenonslav"))
 
 ggplot() +
   geom_ribbon(data = .data, mapping = aes(x = slavicshare,
@@ -131,7 +130,7 @@ variables <- c("slavicshare" = "Slavic Share",
 .data <- list()
 for (i in seq_along(variables)) {
   .data[[i]] <-
-    as.data.frame(avg_marfx(mod1, names(variables)[i], data = alexseev)) %>%
+    amfx(mod1, names(variables)[i], data = alexseev) %>%
     mutate(variable = names(variables)[i],
            description = variables[i])
 }

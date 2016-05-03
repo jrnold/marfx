@@ -17,14 +17,14 @@ install_github('jrnold/marfx')
 
 Methods:
 
-- `postsimev` : Simulate the expected value of the response, $E(y)$.
-- `postsimy`: Simulate the response, $y$.
-- `postsim`: Simulate parameters of the model.
-- `postsim_partialfx`: Simulate `\delta y/ \delta x`.
-- `partialfx`: Calculate partial effects (discrete marginal effects)
-- `avg_partialfx`: Calculate the average partial effect
-- `marfx`: Calculate the marginal effects
-- `avg_margx`: Calculate the average marginal effect
+- `simev` : Simulate the expected value of the response, $E(y)$.
+- `simy`: Simulate the response, $y$.
+- `simpar`: Simulate parameters of the model.
+- `simmfx`: Simulate the partial derivative of 
+- `fdfx`: Calculate finite difference (first differences; partial effects).
+- `afdfx`: Calculate average finite difference
+- `mfx`: Calculate marginal effects
+- `amfx`: Calculate average marginal effects
 
 Supported classes:
 

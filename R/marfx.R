@@ -8,8 +8,8 @@ NULL
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @export
-postsim <- function(x, ...) {
-  UseMethod("postsim")
+simpar <- function(x, ...) {
+  UseMethod("simpar")
 }
 
 #' Simulate Expected Values from a Model
@@ -18,8 +18,8 @@ postsim <- function(x, ...) {
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @export
-postsimev <- function(x, ...) {
-  UseMethod("postsimev")
+simev <- function(x, ...) {
+  UseMethod("simev")
 }
 
 #' Simulate Responses from a Model
@@ -28,8 +28,8 @@ postsimev <- function(x, ...) {
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @export
-postsimy <- function(x, ...) {
-  UseMethod("postsimy")
+simy <- function(x, ...) {
+  UseMethod("simy")
 }
 
 #' Posterior Simulation of Partial Effects
@@ -48,8 +48,8 @@ postsimy <- function(x, ...) {
 #' @param delta Width of difference. See Details.
 #' @param ... further arguments passed to or from other methods.
 #' @export
-postsim_partialfx <- function(x, data1, data2, n, delta, ...) {
-  UseMethod("postsim_partialfx")
+sim_fdfx <- function(x, data1, data2, n, delta, ...) {
+  UseMethod("sim_fdfx")
 }
 
 #' (Average) Partial Effects
@@ -63,14 +63,14 @@ postsim_partialfx <- function(x, data1, data2, n, delta, ...) {
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @export
-partialfx <- function(x, data1, data2, delta, ...) {
-  UseMethod("partialfx")
+fdfx <- function(x, data1, data2, delta, ...) {
+  UseMethod("fdfx")
 }
 
-#' @rdname partialfx
+#' @rdname fdfx
 #' @export
-avg_partialfx <- function(x, data1, data2, delta, ...) {
-  UseMethod("avg_partialfx")
+afdfx <- function(x, data1, data2, delta, ...) {
+  UseMethod("afdfx")
 }
 
 #' Calculate (Average) Marginal Effects of a Model
@@ -82,8 +82,8 @@ avg_partialfx <- function(x, data1, data2, delta, ...) {
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @export
-marfx <- function(x, ...) {
-  UseMethod("marfx")
+mfx <- function(x, ...) {
+  UseMethod("mfx")
 }
 
 # Set Numerical Differentiation width
@@ -126,25 +126,25 @@ mfx_preprocess <- function(x, data, variable, level) {
 }
 
 #' @export
-marfx.default <- function(x, variable, level = NULL,
+mfx.default <- function(x, variable, level = NULL,
                           data = stats::model.frame(x),  ...) {
   prep <- mfx_preprocess(x, data, variable, level)
-  mfx <- partialfx(x, data1 = prep$data1, data2 = prep$data2,
+  mfx <- fdfx(x, data1 = prep$data1, data2 = prep$data2,
                    delta = prep$delta, ...)
   mfx
 }
 
-#' @rdname marfx
+#' @rdname mfx
 #' @export
-avg_marfx <- function(x, ...) {
-  UseMethod("avg_marfx")
+amfx <- function(x, ...) {
+  UseMethod("amfx")
 }
 
 #' @export
-avg_marfx.default <- function(x, variable, level = NULL,
+amfx.default <- function(x, variable, level = NULL,
                               data = stats::model.frame(x), ...) {
   prep <- mfx_preprocess(x, data, variable, level)
-  mfx <- avg_partialfx(x, data1 = prep$data1, data2 = prep$data2,
+  mfx <- afdfx(x, data1 = prep$data1, data2 = prep$data2,
                        delta = prep$delta, ...)
   mfx
 }

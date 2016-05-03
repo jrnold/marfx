@@ -15,7 +15,7 @@ ev_lm <- function(param, X, ...) {
 #' @param ... further arguments passed to or from other methods.
 #' @rdname lm-methods
 #' @export
-postsim.lm <- function(x, n = 1L, ...) {
+simpar.lm <- function(x, n = 1L, ...) {
   summ <- summary(x)
   .n <- summ$df[1] + summ$df[2]
   .k <- summ$df[1]
@@ -30,12 +30,12 @@ postsim.lm <- function(x, n = 1L, ...) {
 
 #' @rdname lm-methods
 #' @export
-postsim_partialfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
+sim_fdfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
   mt <- delete.response(terms(x))
   X1 <- model.matrix(mt, data = data1)
   X2 <- model.matrix(mt, data = data2)
   obs <- nrow(X1)
-  param <- postsim(x, n = n)
+  param <- simpar(x, n = n)
   array(as_vector(map(param, function(p, X1, X2, delta) {
     ev_lm(p[["beta"]], X2 - X1) / delta
   }, X1 = X1, X2 = X2, delta = delta),
@@ -44,24 +44,24 @@ postsim_partialfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
 
 #' @rdname lm-methods
 #' @export
-partialfx.lm <- function(x, data1, data2, delta = 1, n = 1000L, confint = 0.95,
+fdfx.lm <- function(x, data1, data2, delta = 1, n = 1000L, confint = 0.95,
                          ...) {
   # Difference
   point_est <- (predict(x, newdata = data2) -
                   predict(x, newdata = data1)) / delta
   # simulate from posterior to get CI
-  sims <- postsim_partialfx.lm(x, data1, data2, n, delta)
+  sims <- sim_fdfx.lm(x, data1, data2, n, delta)
   sim_summary(sims, confint, estimate = point_est)
 }
 
 #' @rdname lm-methods
 #' @param weights Weights to apply to the data
 #' @export
-avg_partialfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
+afdfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
                              confint = 0.95, weights = NULL, ...) {
 
   # simulate from posterior to get CI
-  sims <- postsim_partialfx.lm(x, data1, data2, n, delta)
+  sims <- sim_fdfx.lm(x, data1, data2, n, delta)
   if (!is.null(weights)) {
     point_est <- weighted.mean(predict(x, newdata = data2) -
                                  predict(x, newdata = data1), w = weights) /
@@ -77,17 +77,17 @@ avg_partialfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
 
 #' @rdname lm-methods
 #' @export
-postsimev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
+simev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
-  params <- postsim.lm(x, n = n, data = data)
+  params <- simpar.lm(x, n = n, data = data)
   map(params, function(p, X) {ev_lm(p[["beta"]], X)}, X = X)
 }
 
 #' @rdname lm-methods
 #' @export
-postsimy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
+simy.lm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
-  params <- postsim.lm(x, n = n, data = data)
+  params <- simpar.lm(x, n = n, data = data)
   map(params, function(p, X) {
     rnorm(nrow(X), ev_lm(p[["beta"]], X), p[["sigma"]])
   }, X = X)

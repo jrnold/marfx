@@ -34,7 +34,7 @@ data2 <-
   summarize(education = mean(education),
             income = mean(income) + 1)
 
-mod_pfx <- partialfx(mod, data1 = data1, data2 = data2)
+mod_pfx <- fdfx(mod, data1 = data1, data2 = data2)
 as.data.frame(mod_pfx) %>%
   mutate(type = data1$type) %>%
   ggplot(aes(x = type, y = estimate, ymin = conf.low, ymax = conf.high)) +
@@ -43,12 +43,12 @@ as.data.frame(mod_pfx) %>%
 ```
 
 Instead, let's calculate the marginal effect of education within each group.
-Since `avg_marfx` calculates the average marginal effect, we need to subset the Duncan data, run `avg_marfx` and recombine it into the dataset that we can use for analysis.
+Since `amfx` calculates the average marginal effect, we need to subset the Duncan data, run `amfx` and recombine it into the dataset that we can use for analysis.
 ```{r}
 .data <- list()
 for (lvl in levels(Duncan$type)) {
   .data[[lvl]] <-
-    avg_marfx(mod, "education", data = filter(Duncan, type == lvl)) %>%
+    amfx(mod, "education", data = filter(Duncan, type == lvl)) %>%
     as.data.frame() %>%
     mutate(type = lvl)
 }

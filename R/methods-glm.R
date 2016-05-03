@@ -22,25 +22,25 @@ ev_glm <- function(param, X, family = NULL, ...) {
 #' @param ... further arguments passed to or from other methods.
 #' @rdname glm-methods
 #' @export
-partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
+fdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
                           confint = 0.95, response = TRUE, ...) {
   # Difference
   predict_type <- if (response) "response" else "link"
   point_est <- (predict(x, newdata = data2, type = predict_type) -
                 predict(x, newdata = data1, type = predict_type)) / delta
   # simulate from posterior to get CI
-  sims <- postsim_partialfx.glm(x, data1, data2, n, response, delta)
+  sims <- sim_fdfx.glm(x, data1, data2, n, response, delta)
   sim_summary(sims, confint, estimate = point_est)
 }
 
 #' @param weights Weights to apply to the data
 #' @rdname glm-methods
 #' @export
-avg_partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
+afdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
                               confint = 0.95, response = TRUE, weights = NULL,
                               ...) {
   predict_type <- if (response) "response" else "link"
-  sims <- postsim_partialfx.glm(x, data1, data2, n, response = response,
+  sims <- sim_fdfx.glm(x, data1, data2, n, response = response,
                             delta = delta)
   if (!is.null(weights)) {
     point_est <-
@@ -60,37 +60,37 @@ avg_partialfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
 
 #' @rdname glm-methods
 #' @export
-postsimev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
+simev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
                           n = 1000L, ...) {
   X <- model.matrix(delete.response(terms(x)), data = data)
-  params <- postsim.glm(x, n = n, data = data)
+  params <- simpar.glm(x, n = n, data = data)
   family <- if (response) x$family else NULL
   map(params, function(p, X, family) {ev_glm(p[["beta"]], X, family)}, X = X)
 }
 
-# postsimy_glm_binomial <- function(n, eta, family = binomial(), weights = NULL, ...) {
+# simy_glm_binomial <- function(n, eta, family = binomial(), weights = NULL, ...) {
 #   rbinom(length(prob), size = weights, prob = family$linkinv(eta)) / size
 # }
 #
-# postsimy_glm_gaussian <- function(n, eta, family = gaussian(), weights = NULL, sigma = 1) {
+# simy_glm_gaussian <- function(n, eta, family = gaussian(), weights = NULL, sigma = 1) {
 #   rnorm(length(eta), mean = family$linkinv(eta), sd = sigma / sqrt(weights))
 # }
 #
 #
-# postsimy.glm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
+# simy.glm <- function(x, n = 1L, data = stats::model.frame(x), ...) {
 #   X <- model.matrix(delete.response(terms(x)), data = data)
-#   params <- postsim.glm(x, n = n, data = data, response = FALSE)
+#   params <- simpar.glm(x, n = n, data = data, response = FALSE)
 # }
 
 #' @rdname glm-methods
 #' @export
-postsim_partialfx.glm <- function(x, data1, data2, n = 1L,
+sim_fdfx.glm <- function(x, data1, data2, n = 1L,
                                   delta = 1, response = FALSE, ...) {
   mt <- delete.response(terms(x))
   X1 <- model.matrix(mt, data = data1)
   X2 <- model.matrix(mt, data = data2)
   obs <- nrow(X1)
-  param <- postsim(x, n = n)
+  param <- simpar(x, n = n)
   array(as_vector(map(param, function(p, X1, X2, response, delta) {
     (ev_glm(p[["beta"]], X2, response = response) -
        ev_glm(p[["beta"]], X1, response = response)) / delta
@@ -100,7 +100,7 @@ postsim_partialfx.glm <- function(x, data1, data2, n = 1L,
 
 #' @rdname glm-methods
 #' @export
-postsim.glm <- function(x, n = 1L, ...) {
+simpar.glm <- function(x, n = 1L, ...) {
   summ <- summary(x)
   beta_hat <- coef(x)
   V_beta <- vcov(x)

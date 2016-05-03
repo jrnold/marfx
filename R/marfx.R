@@ -67,6 +67,17 @@ fdfx <- function(x, data1, data2, delta, ...) {
   UseMethod("fdfx")
 }
 
+fdfx.default <- function(x, data1, data2, delta = 1, n = 1000L,
+                         confint = 0.95, ...) {
+  # Difference
+  point_est <- (predict(x, newdata = data2) -
+                  predict(x, newdata = data1)) / delta
+  # simulate from posterior to get CI
+  sims <- simfdfx(x, data1, data2, n, delta, ...)
+  sim_summary(sims, confint, estimate = point_est)
+}
+
+
 #' @rdname fdfx
 #' @export
 afdfx <- function(x, data1, data2, delta, ...) {
@@ -145,7 +156,7 @@ amfx.default <- function(x, variable, level = NULL,
                               data = stats::model.frame(x), ...) {
   prep <- mfx_preprocess(x, data, variable, level)
   mfx <- afdfx(x, data1 = prep$data1, data2 = prep$data2,
-                       delta = prep$delta, ...)
+               delta = prep$delta, ...)
   mfx
 }
 
@@ -159,8 +170,10 @@ sim_summary <- function(x, confint = 0.95, estimate = NULL) {
   std.error <- apply(x, 1, sd)
   p <- (1 - confint) / 2
   ci <- apply(x, 1, quantile, probs = c(p, 1 - p))
-  ret <- cbind(point_est, std.error, ci[1, ], ci[2, ])
-  colnames(ret) <- c("estimate", "std.error", "conf.low", "conf.high")
+  ret <- data.frame(estimate = point_est,
+                    std.error = std.error,
+                    conf.low = ci[1, ],
+                    conf.high = ci[2, ])
   ret
 }
 

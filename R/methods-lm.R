@@ -33,8 +33,7 @@ simpar.lm <- function(x, n = 1L, V = NULL, ...) {
 
 #' @rdname lm-methods
 #' @export
-simfdfx.lm <- function(x, data1, data2, n = 1L, delta = 1,
-                                 ...) {
+simfdfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
   mt <- delete.response(terms(x))
   X1 <- model.matrix(mt, data = data1)
   X2 <- model.matrix(mt, data = data2)
@@ -44,18 +43,6 @@ simfdfx.lm <- function(x, data1, data2, n = 1L, delta = 1,
     ev_lm(p[["beta"]], X2 - X1) / delta
   }, X1 = X1, X2 = X2, delta = delta),
   .type = double(obs)), dim = c(obs, n))
-}
-
-#' @rdname lm-methods
-#' @export
-fdfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
-                         confint = 0.95, ...) {
-  # Difference
-  point_est <- (predict(x, newdata = data2) -
-                  predict(x, newdata = data1)) / delta
-  # simulate from posterior to get CI
-  sims <- simfdfx.lm(x, data1, data2, n, delta, ...)
-  sim_summary(sims, confint, estimate = point_est)
 }
 
 #' @rdname lm-methods

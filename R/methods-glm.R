@@ -37,7 +37,7 @@ fdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
 #' @rdname glm-methods
 #' @export
 afdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
-                              confint = 0.95, response = TRUE, weights = NULL,
+                      confint = 0.95, response = TRUE, weights = NULL,
                               ...) {
   predict_type <- if (response) "response" else "link"
   sims <- simfdfx.glm(x, data1, data2, n, response = response,

@@ -13,96 +13,144 @@ vignette: >
 library("marfx")
 library("dplyr")
 library("ggplot2")
+library("purrr")
+library("viridis")
 ```
 
-## Duncan Example
+## Conflicing Interests and Trade
 
+Example from Kastner (2007) replicated in Berry et. al (2012).
+
+$$
+\begin{aligned}[t]
+\text{Trade} &= \beta_0 + \beta_C \text{Conflict} + \beta_B \text{(Trade Barriers)}  \\
+& + \beta_{BC} (\text{(Trade Barriers)} \times \text{Conflict}) \\
+& + \beta Z + \varepsilon 
+\end{aligned}
+$$
+
+
+
+## Xenophobic Voting in Russia
+
+Alexseev (2006) ``Ballot-Box Vigilantism: Ethnic
+Population Shifts and Xenophobic Voting in Post-Soviet
+Russia.'' *Political Behavior* replicated in Berry et. al (2012).
+
+Alexseev (2006) examines how changes in ethnic composition of Russian regions affects the vote share of the Russian nationalist Zhirinovsky Bloc in the 2003 elections of the Russian State Duma.
+
+The model is,
+$$
+\begin{aligned}[t]
+\text{(Xenophobic Voing)} &= \beta_0 + \beta_{S} \text{(Slavic Share)} \\
+&+ \beta_{N} \Delta \text{(non-Slavic Share)} \\
+&+ \beta_{SN} (\text{(Slavic Share)} \times \Delta \text{(non-Slavic Share)} \\
+&+ \beta Z + \varepsilon
+\end{aligned}
+$$
+where $Z$ are control variables.
 ```{r}
-library("car")
-mod <- lm(prestige ~ education*type + income*type, data = Duncan)
+mod1 <- lm(xenovote ~ slavicshare * changenonslav +
+     inc9903 + eduhi02 + unemp02 + apt9200 + vsall03 + brdcont, 
+   data = alexseev)
 ```
+Note that even though the `alexseev` dataset includes a variable
+`slavicshare_changenonslav` which is the interaction between Slavic share and $\Delta$ non-Slavic share, this model specifies the interaction in the formula. This makes it much simpler for analysis since the `lm` object will contain information about the relationship between the variables and the terms in the regression, so in the analysis we will only need to specify changes in `slavicshare` or `changenonslav` and the functions can infer that the interaction will need to change.  If instead, the varible `slavicshare_changenonslav` was used, the `lm` object would not know that the variable was an interaction between `slavicshare` and `changenonslav` and we would need to be careful to always change both the variable of interest and the interaction when considering any marginal or partial effects.
 
-Partial effect of a one standard deviation change in education from mean, for all income groups (using the mean and sd within each income group)
-```{r}
-data1 <- Duncan %>%
-  group_by(type) %>%
-  summarize(education = mean(education),
-            income = mean(income))
-data2 <-
-  Duncan %>% 
-  group_by(type) %>%
-  summarize(education = mean(education),
-            income = mean(income) + 1)
+Berry et. al (2012, p. 14) present two marginal effect plots.
+The marginal effect of Slavic share on xenophobic voting, and the marginal effect of $\Delta$ non-Slavic share on xenophobic voting.
+```{r fig.caption="Marginal Effect of Slavic Share on Xenophobic Voting"}
+.data <- cross_d(list(changenonslav =
+                   seq(min(alexseev$changenonslav),
+                       max(alexseev$changenonslav),
+                       length.out = 30),
+                 slavicshare = mean(alexseev$slavicshare),
+                 inc9903 = mean(alexseev$inc9903),
+                 eduhi02 = mean(alexseev$eduhi02),
+                 unemp02 = mean(alexseev$unemp02),
+                 apt9200 = mean(alexseev$apt9200),
+                 vsall03 = mean(alexseev$vsall03),
+                 brdcont = FALSE))
 
-mod_pfx <- fdfx(mod, data1 = data1, data2 = data2)
-as.data.frame(mod_pfx) %>%
-  mutate(type = data1$type) %>%
-  ggplot(aes(x = type, y = estimate, ymin = conf.low, ymax = conf.high)) +
-  geom_pointrange() +
-  coord_flip()
+.data <- cbind(.data, as.data.frame(marfx(mod1, data = .data, "slavicshare")))
+
+ggplot() +
+  geom_ribbon(data = .data, mapping = aes(x = changenonslav, 
+                                          ymin = conf.low, 
+                                          ymax = conf.high),
+              alpha = 0.3) +
+  geom_line(data = .data, mapping = aes(x = changenonslav, y = estimate)) +
+  geom_rug(data = alexseev, mapping = aes(x = changenonslav)) +
+  geom_hline(yintercept = 0, color = "gray") + 
+  scale_x_continuous(name = expression(paste(Delta, "non-Slavic Share")), breaks = seq(-2, 12, by = 2)) +
+  scale_y_continuous(name = "Marginal Effect of Slavic Share",
+                     breaks = seq(-.05, .25, by = .05)) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+     
 ```
-
-Instead, let's calculate the marginal effect of education within each group.
-Since `amfx` calculates the average marginal effect, we need to subset the Duncan data, run `amfx` and recombine it into the dataset that we can use for analysis.
+The marginal effects of $\Delta$ non-Slavic Share on Xenophobic voting:
 ```{r}
+.data <- cross_d(list(slavicshare =
+                   seq(min(alexseev$slavicshare),
+                       max(alexseev$slavicshare),
+                       length.out = 30),
+                 changenonslav = mean(alexseev$changenonslav),
+                 inc9903 = mean(alexseev$inc9903),
+                 eduhi02 = mean(alexseev$eduhi02),
+                 unemp02 = mean(alexseev$unemp02),
+                 apt9200 = mean(alexseev$apt9200),
+                 vsall03 = mean(alexseev$vsall03),
+                 brdcont = FALSE))
+
+.data <- cbind(.data, as.data.frame(marfx(mod1, data = .data, "changenonslav")))
+
+ggplot() +
+  geom_ribbon(data = .data, mapping = aes(x = slavicshare,
+                                          ymin = estimate - 1.96 * std.error, 
+                                          ymax = estimate + 1.96 * std.error),
+              alpha = 0.3) +
+  geom_line(data = .data, mapping = aes(x = slavicshare, y = estimate)) +
+  geom_rug(data = alexseev, mapping = aes(x = slavicshare)) +
+  geom_hline(yintercept = 0, color = "gray") + 
+  scale_x_continuous(name = "Slavic Share", breaks = seq(30, 100, by = 10)) +
+  scale_y_continuous(name = expression(paste("Marginal Effect of", Delta, "non-Slavic Share")),
+                     breaks = seq(-1, .5, by = .25)) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+```
+By using the `std.error`, this plot has smoother confidence intervals than the one using `conf.low` and `conf.high`, which are generated from the quantiles of the simulations.
+
+
+**TODO:** Add clustered standard errors.
+
+To summarize the effect of Slavic Share and $\Delta$ non-Slavic Share on xenophobic vote share we can calculate the average marginal effects of these variables,
+```{r fig.caption="Average Marginal Effects on Xenophobic Voting"}
+variables <- c("slavicshare" = "Slavic Share",
+               "changenonslav" = "Change non-Slavic Share")
 .data <- list()
-for (lvl in levels(Duncan$type)) {
-  .data[[lvl]] <-
-    amfx(mod, "education", data = filter(Duncan, type == lvl)) %>%
-    as.data.frame() %>%
-    mutate(type = lvl)
+for (i in seq_along(variables)) {
+  .data[[i]] <-
+    as.data.frame(avg_marfx(mod1, names(variables)[i], data = alexseev)) %>%
+    mutate(variable = names(variables)[i],
+           description = variables[i])
 }
 .data <- bind_rows(.data)
-as.data.frame(.data) %>%
-  ggplot(aes(x = type, y = estimate, ymin = conf.low, ymax = conf.high)) +
+
+ggplot(.data, aes(x = description, y = estimate, ymin = conf.low, ymax = conf.high)) +
+  geom_hline(yintercept = 0, colour = "gray") +
   geom_pointrange() +
-  coord_flip()
+  coord_flip() +
+  scale_x_discrete("") +
+  scale_y_continuous("Average Marginal Effects") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
 ```
 
-Plot the marginal effect of education for each group, averaged over members of each group, at different levels of education
-```{r}
-.data <- marfx(mod, "education", data = Duncan)
-.data <- cbind(Duncan, as.data.frame(.data))
-ggplot(.data, 
-       aes(colour = type, x = education, y = estimate,
-           ymin = conf.low, ymax = conf.high)) +
-  geom_pointrange()
+**TODO** What to do if interactions are specified in the 
+data rather than the formula.
 
-```
+# Conflicting Interests and Trade
 
-Plot the marginal effects of education for each group, over the entire range of education, using the entire range of education,
-```{r}
-.data <- 
-  data.frame(education = seq(0, 100, by = 10)) %>%
-    group_by(education) %>%
-    do(select(Duncan, -education)) %>%
-  cbind(as.data.frame(marfx(mod, "education", data = .)))
-ggplot() + 
-  geom_ribbon(data = .data,
-              mapping = aes(fill = type, x = education,
-                            ymin = conf.low, ymax = conf.high),
-              alpha = 0.3) + 
-  geom_line(data = .data,
-            mapping = aes(color = type, x = education, y = estimate)) +
-  geom_rug(data = Duncan, aes(x = education, color = type))
-```
+Kaster Example
 
-Example which looks at the marginal effect of education when
-education is a 4th-order polynomial.
-```{r}
-mod2 <- lm(prestige ~ poly(education, 4), data = Duncan)
-.data <- marfx(mod2, "education",
-               data = data_frame(education = seq(0, 100, by = 10))) %>%
-  as.data.frame() %>%
-  mutate(education = seq(0, 100, by = 10))
-  
-ggplot() + 
-  geom_ribbon(data = .data,
-              mapping = aes(x = education,
-                            ymin = conf.low, ymax = conf.high),
-              alpha = 0.3) + 
-  geom_line(data = .data, mapping = aes(x = education, y = estimate)) +
-  geom_point(data = .data, mapping = aes(x = education, y = estimate)) +  
-  geom_rug(data = Duncan, aes(x = education))
-
-```

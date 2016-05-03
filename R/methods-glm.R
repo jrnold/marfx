@@ -29,7 +29,7 @@ fdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
   point_est <- (predict(x, newdata = data2, type = predict_type) -
                 predict(x, newdata = data1, type = predict_type)) / delta
   # simulate from posterior to get CI
-  sims <- sim_fdfx.glm(x, data1, data2, n, response, delta)
+  sims <- simfdfx.glm(x, data1, data2, n, response, delta)
   sim_summary(sims, confint, estimate = point_est)
 }
 
@@ -40,7 +40,7 @@ afdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
                               confint = 0.95, response = TRUE, weights = NULL,
                               ...) {
   predict_type <- if (response) "response" else "link"
-  sims <- sim_fdfx.glm(x, data1, data2, n, response = response,
+  sims <- simfdfx.glm(x, data1, data2, n, response = response,
                             delta = delta)
   if (!is.null(weights)) {
     point_est <-
@@ -84,7 +84,7 @@ simev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
 
 #' @rdname glm-methods
 #' @export
-sim_fdfx.glm <- function(x, data1, data2, n = 1L,
+simfdfx.glm <- function(x, data1, data2, n = 1L,
                                   delta = 1, response = FALSE, ...) {
   mt <- delete.response(terms(x))
   X1 <- model.matrix(mt, data = data1)
@@ -99,14 +99,17 @@ sim_fdfx.glm <- function(x, data1, data2, n = 1L,
 }
 
 #' @rdname glm-methods
+#' @param V The variance-covariance matrix of the coefficients. This arguments
+#'   allows for the substitution of "robust" covariance matrices.
 #' @export
-simpar.glm <- function(x, n = 1L, ...) {
+simpar.glm <- function(x, n = 1L, V = NULL, ...) {
   summ <- summary(x)
   beta_hat <- coef(x)
-  V_beta <- vcov(x)
-  sigma <- rep(sqrt(summ$dispersion), n.sims)
+  sigma <- rep(sqrt(summ$dispersion), n)
+  if (is.null(V)) V <- vcov(x)
   ## TODO parallel process
-  map(array_branch(rmvnorm(n, beta_hat, V_beta), margin = 2),
-      function(x, sigma) list(beta = x, sigma = sigma), sigma = sigma)
+  map(array_branch(rmvnorm(n, beta_hat, V), margin = 2),
+      function(x, sigma) list(beta = x, sigma = sigma),
+      sigma = sigma)
 }
 

@@ -48,8 +48,8 @@ simy <- function(x, ...) {
 #' @param delta Width of difference. See Details.
 #' @param ... further arguments passed to or from other methods.
 #' @export
-sim_fdfx <- function(x, data1, data2, n, delta, ...) {
-  UseMethod("sim_fdfx")
+simfdfx <- function(x, data1, data2, n, delta, ...) {
+  UseMethod("simfdfx")
 }
 
 #' (Average) Partial Effects

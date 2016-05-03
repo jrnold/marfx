@@ -21,7 +21,7 @@
 \method{postsim_partialfx}{glm}(x, data1, data2, n = 1L, delta = 1,
   response = FALSE, ...)
 
-\method{postsim}{glm}(x, n = 1L, ...)
+\method{postsim}{glm}(x, n = 1L, V = NULL, ...)
 }
 \arguments{
 \item{x}{object}
@@ -41,6 +41,9 @@ are on the scale of the linear predictors.}
 \item{...}{further arguments passed to or from other methods.}
 
 \item{weights}{Weights to apply to the data}
+
+\item{V}{The variance-covariance matrix of the coefficients. This arguments
+allows for the substitution of "robust" covariance matrices.}
 }
 \description{
 Methods for \code{glm} Models

@@ -10,7 +10,7 @@
 \alias{postsimy.lm}
 \title{Methods for \code{lm} Models}
 \usage{
-\method{postsim}{lm}(x, n = 1L, ...)
+\method{postsim}{lm}(x, n = 1L, V = NULL, ...)
 
 \method{postsim_partialfx}{lm}(x, data1, data2, n = 1L, delta = 1, ...)
 
@@ -28,6 +28,9 @@
 \item{x}{object}
 
 \item{n}{Number of iterations}
+
+\item{V}{Variance-covariance matrix for the coefficients. This
+allows for the substitution of "robust" covariance matrices.}
 
 \item{...}{further arguments passed to or from other methods.}
 

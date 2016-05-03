@@ -97,9 +97,17 @@ mfx <- function(x, ...) {
   UseMethod("mfx")
 }
 
-# Set Numerical Differentiation width
-# See http://www.karenkopecky.net/Teaching/eco613614/Notes_NumericalDifferentiation.pdf
-numdiff_width <- function(x) {
+#' Numerical Differentiation Step-size
+#'
+#' Step-size for one-sided numerical differentiation to
+#' \deqn{h = \max(|x|, 1) \sqrt{\epsilon}}{h = max(|x|, 1)sqrt(epsilon)}
+#' where \eqn{\epsilon}{epsilon} is machien precision.
+#'
+#' @param x The value of \eqn{x} at which the derivative is being evaluated.
+#' @references Miranda, Mario J. and Paul L. Fackler. 2002. Applied Computational
+#'   Economics and Finance. p. 103.
+#' @export
+numdiff_stepsize <- function(x) {
   # Add and subtract x to remove roundoff error
   x + max(abs(x), 1) * sqrt(.Machine$double.eps) - x
 }

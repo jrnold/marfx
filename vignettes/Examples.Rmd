@@ -204,4 +204,12 @@ mfx(mod_turnout, "age", data = summarize(group_by(turnout, race),
 ```
 
 
+Average finite difference effect of moving from 20 to 80,
+```{r}
+afdfx(mod_turnout,
+      data1 = mutate(turnout, age = 20),
+      data2 = mutate(turnout, age = 80))
+```
+
+
 

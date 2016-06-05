@@ -29,7 +29,8 @@ fdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
   point_est <- (predict(x, newdata = data2, type = predict_type) -
                 predict(x, newdata = data1, type = predict_type)) / delta
   # simulate from posterior to get CI
-  sims <- simfdfx.glm(x, data1, data2, n, response, delta)
+  sims <- simfdfx.glm(x, data1, data2, n = n,
+                      response = response, delta = delta)
   sim_summary(sims, confint, estimate = point_est)
 }
 
@@ -88,10 +89,15 @@ simfdfx.glm <- function(x, data1, data2, n = 1L,
   X2 <- model.matrix(mt, data = data2)
   obs <- nrow(X1)
   param <- simpar(x, n = n)
-  array(as_vector(map(param, function(p, X1, X2, response, delta) {
-    (ev_glm(p[["beta"]], X2, response = response) -
-       ev_glm(p[["beta"]], X1, response = response)) / delta
-  }, X1 = X1, X2 = X2, response = response, delta = delta),
+  family <- if (response) {
+    x$family
+  } else {
+    NULL
+  }
+  array(as_vector(map(param, function(p, X1, X2, family, delta) {
+    (ev_glm(p[["beta"]], X2, family) -
+       ev_glm(p[["beta"]], X1, family)) / delta
+  }, X1 = X1, X2 = X2, family = family, delta = delta),
   .type = double(obs)), dim = c(obs, n))
 }
 
@@ -102,11 +108,10 @@ simfdfx.glm <- function(x, data1, data2, n = 1L,
 simpar.glm <- function(x, n = 1L, V = NULL, ...) {
   summ <- summary(x)
   beta_hat <- coef(x)
-  sigma <- rep(sqrt(summ$dispersion), n)
+  sigma <- sqrt(summ$dispersion)
   if (is.null(V)) V <- vcov(x)
   ## TODO parallel process
-  map(array_branch(rmvnorm(n, beta_hat, V), margin = 2),
-      function(x, sigma) list(beta = x, sigma = sigma),
-      sigma = sigma)
+  rerun(n, list(beta = setNames(as.numeric(rmvnorm(1, beta_hat, V)),
+                                names(beta_hat)), sigma = sigma))
 }
 

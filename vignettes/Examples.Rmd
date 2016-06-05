@@ -149,7 +149,59 @@ ggplot(.data, aes(x = description, y = estimate, ymin = conf.low, ymax = conf.hi
 **TODO** What to do if interactions are specified in the 
 data rather than the formula.
 
-# Conflicting Interests and Trade
+## Logit
 
-Kaster Example
+A logit model of voting turnout.
+
+```{r}
+library("Zelig")
+data("turnout", package = "Zelig")
+mod_turnout <- glm(vote ~ poly(age, 2) + race + educate, data = turnout, family = binomial)
+summary(mod_turnout)
+```
+
+Calculate the average marginal effect of age,
+```{r}
+amfx(mod_turnout, "age", data = turnout)
+```
+the average marginal effect of all variables,
+```{r}
+data.frame(variable = c("age", "race", "educate")) %>%
+  group_by(variable) %>%
+  do({
+    amfx(mod_turnout, .$variable, data = turnout)
+  })
+
+```
+
+Calculate the average marginal effects of age at its mean value, holding the other
+values at their means and race = "white",
+```{r}
+summarize(turnout, age = mean(age), educate = mean(educate)) %>%
+  mutate(race = factor("white", levels = levels(turnout$race))) %>%
+  mfx(mod_turnout, "age", data = .)
+```
+Calculate the marginal effects of age at each decade, 20 to 80, holding `educate` at its mean,
+and setting `race` to "white":
+```{r}
+data_frame(age = seq(20, 80, by = 10)) %>%
+  mutate(race = factor("white", levels = levels(turnout$race)),
+         educate = mean(turnout$educate)) %>%
+  bind_cols(., mfx(mod_turnout, "age", data = .)) %>%
+  ggplot(aes(x = age, y = estimate,
+             ymin = estimate - 2 * std.error, ymax = estimate + 2 * std.error)) +
+  geom_ribbon(alpha = 0.3) +
+  geom_line()
+```
+
+
+Calculate the average marginal effects of each variable holding the others at
+representative values within each group
+```{r}
+mfx(mod_turnout, "age", data = summarize(group_by(turnout, race),
+                                         age = mean(age),
+                                         educate = mean(educate)))
+```
+
+
 

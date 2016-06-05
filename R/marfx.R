@@ -1,5 +1,6 @@
 #' @import mvtnorm
 #' @import purrr
+#' @import stats
 NULL
 
 #' Simulate Parameters from a Model
@@ -150,6 +151,7 @@ mfx.default <- function(x, variable, level = NULL,
   prep <- mfx_preprocess(x, data, variable, level)
   mfx <- fdfx(x, data1 = prep$data1, data2 = prep$data2,
                    delta = prep$delta, ...)
+  rownames(mfx) <- NULL
   mfx
 }
 
@@ -165,6 +167,7 @@ amfx.default <- function(x, variable, level = NULL,
   prep <- mfx_preprocess(x, data, variable, level)
   mfx <- afdfx(x, data1 = prep$data1, data2 = prep$data2,
                delta = prep$delta, ...)
+  rownames(mfx) <- NULL
   mfx
 }
 

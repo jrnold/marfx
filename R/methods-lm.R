@@ -27,7 +27,8 @@ simpar.lm <- function(x, n = 1L, V = NULL, ...) {
   sigma <- rep(sigma_hat, n)
   if (is.null(V)) V <- vcov(x)
   map(sigma, function(sigma, b, V) {
-    list(beta = as.numeric(rmvnorm(1, b, V)), sigma = sigma)
+    list(beta = setNames(as.numeric(rmvnorm(1, b, V)),
+                         names(b)), sigma = sigma)
   }, b = beta_hat, V = V)
 }
 

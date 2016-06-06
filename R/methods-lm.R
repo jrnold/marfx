@@ -35,9 +35,8 @@ simpar.lm <- function(x, n = 1L, V = NULL, ...) {
 #' @rdname lm-methods
 #' @export
 simfdfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
-  mt <- delete.response(terms(x))
-  X1 <- model.matrix(mt, data = data1)
-  X2 <- model.matrix(mt, data = data2)
+  X1 <- preprocess_data_lm(x, data1)
+  X2 <- preprocess_data_lm(x, data2)
   obs <- nrow(X1)
   param <- simpar(x, n = n, ...)
   array(as_vector(map(param, function(p, X1, X2, delta) {
@@ -50,7 +49,7 @@ simfdfx.lm <- function(x, data1, data2, n = 1L, delta = 1, ...) {
 #' @param weights Weights to apply to the data
 #' @export
 afdfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
-                             confint = 0.95, weights = NULL, ...) {
+                     confint = 0.95, weights = NULL, ...) {
   # simulate from posterior to get CI
   sims <- simfdfx(x, data1, data2, n, delta, ...)
   if (!is.null(weights)) {
@@ -69,7 +68,7 @@ afdfx.lm <- function(x, data1, data2, delta = 1, n = 1000L,
 #' @rdname lm-methods
 #' @export
 simev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
-  X <- model.matrix(delete.response(terms(x)), data = data)
+  X <- preprocess_data_lm(x, data)
   params <- simpar.lm(x, n = n, data = data, ...)
   map(params, function(p, X) {ev_lm(p[["beta"]], X)}, X = X)
 }
@@ -78,9 +77,15 @@ simev.lm <- function(x, data = stats::model.frame(x), n = 1000L, ...) {
 #' @export
 simy.lm <- function(x, n = 1L,
                         data = stats::model.frame(x), ...) {
-  X <- model.matrix(delete.response(terms(x)), data = data)
+  X <- preprocess_data_lm(x, data)
   params <- simpar.lm(x, n = n, data = data, ...)
   map(params, function(p, X) {
     rnorm(nrow(X), ev_lm(p[["beta"]], X), p[["sigma"]])
   }, X = X)
+}
+
+preprocess_data_lm <- function(x, .data) {
+  xlev <- x$xlevels
+  mt <- delete.response(terms(x))
+  model.matrix(mt, data = .data, xlev = xlev)
 }

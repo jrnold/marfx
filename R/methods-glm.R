@@ -60,7 +60,7 @@ afdfx.glm <- function(x, data1, data2, delta = 1, n = 1000L,
 #' @export
 simev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
                           n = 1000L, ...) {
-  X <- model.matrix(delete.response(terms(x)), data = data)
+  X <- preprocess_data_lm(x, data)
   params <- simpar.glm(x, n = n, data = data)
   family <- if (response) x$family else NULL
   map(params, function(p, X, family) {ev_glm(p[["beta"]], X, family)}, X = X)
@@ -84,9 +84,8 @@ simev.glm <- function(x, data = stats::model.frame(x), response = TRUE,
 #' @export
 simfdfx.glm <- function(x, data1, data2, n = 1L,
                                   delta = 1, response = FALSE, ...) {
-  mt <- delete.response(terms(x))
-  X1 <- model.matrix(mt, data = data1)
-  X2 <- model.matrix(mt, data = data2)
+  X1 <- preprocess_data_lm(x, data1)
+  X2 <- preprocess_data_lm(x, data2)
   obs <- nrow(X1)
   param <- simpar(x, n = n)
   family <- if (response) {
@@ -110,7 +109,7 @@ simpar.glm <- function(x, n = 1L, V = NULL, ...) {
   beta_hat <- coef(x)
   sigma <- sqrt(summ$dispersion)
   if (is.null(V)) V <- vcov(x)
-  ## TODO parallel process
+  ## TODO parallel process
   rerun(n, list(beta = setNames(as.numeric(rmvnorm(1, beta_hat, V)),
                                 names(beta_hat)), sigma = sigma))
 }

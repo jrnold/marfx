@@ -49,6 +49,7 @@ $$
 $$
 where $Z$ are control variables.
 ```{r}
+data("alexseev", package = "marfx")
 mod1 <- lm(xenovote ~ slavicshare * changenonslav +
      inc9903 + eduhi02 + unemp02 + apt9200 + vsall03 + brdcont, 
    data = alexseev)
@@ -178,14 +179,14 @@ Calculate the average marginal effects of age at its mean value, holding the oth
 values at their means and race = "white",
 ```{r}
 summarize(turnout, age = mean(age), educate = mean(educate)) %>%
-  mutate(race = factor("white", levels = levels(turnout$race))) %>%
+  mutate(race = "white") %>%
   mfx(mod_turnout, "age", data = .)
 ```
 Calculate the marginal effects of age at each decade, 20 to 80, holding `educate` at its mean,
 and setting `race` to "white":
 ```{r}
 data_frame(age = seq(20, 80, by = 10)) %>%
-  mutate(race = factor("white", levels = levels(turnout$race)),
+  mutate(race = "white",
          educate = mean(turnout$educate)) %>%
   bind_cols(., mfx(mod_turnout, "age", data = .)) %>%
   ggplot(aes(x = age, y = estimate,
@@ -211,5 +212,10 @@ afdfx(mod_turnout,
       data2 = mutate(turnout, age = 80))
 ```
 
+```{r}
+afdfx(mod_turnout,
+      data1 = mutate(turnout, race = "white"),
+      data2 = mutate(turnout, race = "other"))
+```
 
 

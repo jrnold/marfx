@@ -149,8 +149,7 @@ mfx_preprocess <- function(x, data, variable, level) {
 mfx.default <- function(x, variable, level = NULL,
                           data = stats::model.frame(x),  ...) {
   prep <- mfx_preprocess(x, data, variable, level)
-  mfx <- fdfx(x, data1 = prep$data1, data2 = prep$data2,
-                   delta = prep$delta, ...)
+  mfx <- fdfx(x, data1 = prep$data1, data2 = prep$data2, delta = prep$delta, ...)
   rownames(mfx) <- NULL
   mfx
 }
@@ -185,6 +184,7 @@ sim_summary <- function(x, confint = 0.95, estimate = NULL) {
                     std.error = std.error,
                     conf.low = ci[1, ],
                     conf.high = ci[2, ])
+  rownames(ret) <- NULL
   ret
 }
 

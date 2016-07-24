@@ -58,6 +58,8 @@ Note that even though the `alexseev` dataset includes a variable
 `slavicshare_changenonslav` which is the interaction between Slavic share and $\Delta$ non-Slavic share, this model specifies the interaction in the formula. This makes it much simpler for analysis since the `lm` object will contain information about the relationship between the variables and the terms in the regression, so in the analysis we will only need to specify changes in `slavicshare` or `changenonslav` and the functions can infer that the interaction will need to change.  If instead, the varible `slavicshare_changenonslav` was used, the `lm` object would not know that the variable was an interaction between `slavicshare` and `changenonslav` and we would need to be careful to always change both the variable of interest and the interaction when considering any marginal or partial effects.
 
 Berry et. al (2012, p. 14) present two marginal effect plots.
+### COMMENT: This seems to be a different paper? Not sure what this has to do with the nationalist vote share plots below.
+
 The marginal effect of Slavic share on xenophobic voting, and the marginal effect of $\Delta$ non-Slavic share on xenophobic voting.
 ```{r fig.caption="Marginal Effect of Slavic Share on Xenophobic Voting"}
 .data <- cross_d(list(changenonslav =
@@ -121,6 +123,8 @@ ggplot() +
 ```
 By using the `std.error`, this plot has smoother confidence intervals than the one using `conf.low` and `conf.high`, which are generated from the quantiles of the simulations.
 
+### COMMENT: This is a little confusing because you use two different methods on two different marginal effects plots. Might be good to have each plot model the same variable (changenonslavs or slavicshare) so that you can see the different in output. It might also be good to explain the separate advantages of the conf.int method and the  st.err. method, as well as to mention that mfx generates the confidence intervals by simulation to explain why it returns a different result. My guess is that not everyone who uses the package will have read King et al.
+
 
 **TODO:** Add clustered standard errors.
 
@@ -175,6 +179,8 @@ data.frame(variable = c("age", "race", "educate")) %>%
 
 ```
 
+### COMMENT: These functions are doing something odd. The average marginal effects of age for the two code blocks above return different results. The first block returns results for "age" that match the results for "educate" from the second code block. I'm not sure where the error is coming from, but it seems like a problem.
+
 Calculate the average marginal effects of age at its mean value, holding the other
 values at their means and race = "white",
 ```{r}
@@ -203,7 +209,7 @@ mfx(mod_turnout, "age", data = summarize(group_by(turnout, race),
                                          age = mean(age),
                                          educate = mean(educate)))
 ```
-
+### Comment: The output of this function makes it unclear which entry is related to which value of "race"
 
 Average finite difference effect of moving from 20 to 80,
 ```{r}
@@ -212,10 +218,11 @@ afdfx(mod_turnout,
       data2 = mutate(turnout, age = 80))
 ```
 
+
 ```{r}
 afdfx(mod_turnout,
       data1 = mutate(turnout, race = "white"),
-      data2 = mutate(turnout, race = "other"))
+      data2 = mutate(turnout, race = "others"))
 ```
 
 
